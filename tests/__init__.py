@@ -1,10 +1,9 @@
-from modelmapper.base import ModelLink, Form, SubForm
-from modelmapper.fields import Field
+from modelform.base import ModelMapper, Form, SubForm, SubListForm
+from modelform.fields import Field, ComposedField, ListComposedField
 
 
-class WidgetA(object):
-
-    def __init__(self, val):
+class ChildA(object):
+    def __init__(self, val=None):
         self._value = val
 
     def set_value(self, val):
@@ -14,9 +13,8 @@ class WidgetA(object):
         return self._value
 
 
-class WidgetB(object):
-
-    def __init__(self, text):
+class ChildB(object):
+    def __init__(self, text=None):
         self._text = text
 
     def set_text(self, text):
@@ -26,94 +24,89 @@ class WidgetB(object):
         return self._text
 
 
-class WidgetD(object):
-
-    def __init__(self, val):
+class ChildC(object):
+    def __init__(self, val=None):
         self.value = val
 
 
-class SimpleUI(object):
-
-    def __init__(self, **kwargs):
-        self._name = "Fake"
-        self._fake_attr = 5
-
-        self.widget_a = WidgetA(kwargs.get('widget_a', 10))
-        self.widget_b = WidgetB(kwargs.get('widget_b', 'Widget B value'))
-        self.widget_d = WidgetD(kwargs.get('widget_d', 'Widget D value'))
-
-    def get_values(self):
-        return {
-            'widget_a': self.widget_a.get_value(),
-            'widget_b': self.widget_b.get_text(),
-            'widget_d': self.widget_d.value
-        }
-
-
-class _SimpleModelLink(ModelLink):
-    widget_a = Field(setter='set_value', getter='get_value')
-    widget_b = Field(setter='set_text', getter='get_text')
-    widget_c = Field(source='widget_a', setter='set_value', getter='get_value')
-
-
-class SimpleModelLink(_SimpleModelLink):
-    widget_d = Field(setter='value', getter='value')
-    widget_e = Field()
-
-
-class SimpleUI2(object):
-
-    def __init__(self, **kwargs):
-        self.widget_e = WidgetA(kwargs.get('widget_e', 10))
-        self.widget_f = WidgetB(kwargs.get('widget_f', 'Widget F value'))
-
-    def get_values(self):
-        return {
-            'widget_e': self.widget_e.get_value(),
-            'widget_f': self.widget_f.get_text(),
-        }
-
-
-class ComplexUI(object):
-
+class Parent(object):
     def __init__(self):
-        data_1 = {
-            'widget_a': 10,
-            'widget_b': 'Text B',
-            'widget_d': 'Text D'
-        }
-        data_2 = {
-            'widget_e': 0,
-            'widget_f': 'Another text F',
-        }
-        self.main_ui = SimpleUI(**data_1)
-        self.main_widget = WidgetB("Main Widget")
-        self.secondary_ui = SimpleUI2(**data_2)
+        self.child_a = ChildA()
+        self.child_b = ChildB()
 
-    def get_values(self):
-        data = {}
-        data.update(self.main_ui.get_values())
-        data['main_widget'] = self.main_widget.get_text()
-        data.update(self.secondary_ui.get_values())
-        return data
+        self._no_model = None
 
 
-class SimpleUIModelLink(_SimpleModelLink):
-    widget_a = Field(setter='set_value', getter='get_value')
-    widget_b = Field(setter='set_text', getter='get_text')
-    widget_d = Field(setter='value', getter='value')
+class GrandParent(object):
+    def __init__(self):
+        self.parent = Parent()
+        self.orphan = ChildA()
+        self.children = ChildA()
+        self.fake = 58
 
 
-class SimpleUI2ModelLink(ModelLink):
-    widget_e = Field(setter='set_value', getter='get_value')
-    widget_f = Field(setter='set_text', getter='get_text')
+# DATA MODEL
+grand_parent_data = {
+    'parent_db': {
+        'child_a_db': {'name_db': "Pablo", 'age_db': 10},
+        'child_b_db': {'name_db': "Peter", 'age_db': 10}
+    },
+    'orphan_db': {'name_db': 'Juan', 'age_db': 4},
+    'children_db': [
+        {'name_db': "Juan", 'age_db': 9},
+        {'name_db': "Sofia", 'age_db': 20}
+    ]
+}
 
 
-class MainWidgetModelLink(ModelLink):
-    main_widget = Field(setter='set_text', getter='get_text')
+# Mapper
+
+# {FIELD_NAME: (DB_PATH, OBJ_PATH)}
 
 
-class UIForm(Form):
-    main_ui = SubForm(SimpleUIModelLink)
-    secondary_ui = SubForm(SimpleUI2ModelLink)
+def get_child(prefix_name, db_path, obj_path):
+    return {
+        '%s_name' % prefix_name: Field('%s.name_db' % db_path, '%s.name' % obj_path),
+        '%s_age' % prefix_name: Field('%s.age_db' % db_path, '%s.age' % obj_path),
+    }
 
+
+child_a = get_child('child_a', 'parent_db.child_a_db', 'parent.child_a')
+child_b = get_child('child_b', 'parent_db.child_b_db', 'parent.child_b')
+orphan = get_child('orphan', 'orphan_db', 'orphan')
+children = get_child('children', 'children_db', 'children')
+
+
+mapper = {
+    'child_a_name': ('parent_db.child_a_db.name', 'parent.child_a.age'),
+    'child_a_age': ('parent_db.child_a_db.name', 'parent.child_a.age'),
+    'child_b_name': ('parent_db.child_b_db.name', 'parent.child_b.age'),
+    'child_b_age': ('parent_db.child_b_db.name', 'parent.child_b.age'),
+    'orphan_name': ('orphan_db.name_db', 'orphan_db.age_db'),
+}
+
+
+# CLASS MODEL
+# def get_child_mapper(path_to_object=None):
+#     return {
+#         'name': Field('name_db', path_to_object=path_to_object, setter='set'),
+#         'age': Field('age_db', path_to_object=path_to_object, setter='setter')
+#     }
+#
+#
+# parent_mapper = {
+#     'child_a': ComposedField('child_a_db', get_child_mapper(path_to_object='parent.child_a')),
+#     'child_b': ComposedField('child_b_db', get_child_mapper(path_to_object='parent.child_b'))
+# }
+#
+#
+# mapper_data = {
+#     'parent': ComposedField('parent_db', parent_mapper),
+#     'orphan': Field('orphan_db', getter='getter'),
+#     'children': ListComposedField('children_db', get_child_mapper(path_to_object='children'))
+# }
+#
+# map = ModelMapper(mapper_data, GrandParent())
+#
+# map.from_dict(grand_parent_data)
+# map.to_dict()
