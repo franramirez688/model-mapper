@@ -1,6 +1,6 @@
 import unittest
 
-from modelmapper.utils import ModelDataAccessor
+from modelmapper.utils import ModelAccessor
 
 model_data_dict = {
     'a': {
@@ -19,10 +19,15 @@ model_data_dict = {
 class TestModelDataAccessor(unittest.TestCase):
 
     def setUp(self):
-        self._model_data_accessor = ModelDataAccessor(model_data_dict)
+        self._model_data_accessor = ModelAccessor(model_data_dict)
 
     def test_get_value(self):
-        pass
+        real_value = model_data_dict['a']['aa']['aaa']
+        self.assertEqual(real_value, self._model_data_accessor.a.aa.aaa)
+        self.assertEqual(real_value, getattr(self._model_data_accessor, 'a.aa.aaa'))
+        self.assertEqual(real_value, self._model_data_accessor.get('a.aa.aaa'))
+        self.assertTrue('a.aa.aaa' in self._model_data_accessor)
+
 
     def test_set_value(self):
         pass

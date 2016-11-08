@@ -1,97 +1,60 @@
-"""
-    Class based on question from Stackoverflow:
-        - http://stackoverflow.com/questions/3797957/python-easily-access-deeply-nested-dict-get-and-set
-        - https://gist.github.com/einnocent/8854896
-"""
-from modelmapper.exceptions import ModelDataAccessorError
+import re
 
-# TODO: It must be compatible with list values
 
-class ModelDataAccessor(dict):
-    """
-        Turn dict into an object that allows access to nested keys via dot notation
-    """
+class ModelAccessor(object):
 
-    def __init__(self, value=None):
-        if isinstance(value, dict):
-            for key in value:
-                self.__setitem__(key, value[key])
-        elif value is not None:
-            raise ModelDataAccessorError('Expected dict or NoneType')
+    PATH_SEPARATOR_CHARACTER = '.'
+    SPLIT_PATTERN = re.compile("\.|\[([0-9]+)\]")
 
-    def _is_path(self, k):
-        """Check if k is a path to an element of the dictionary
+    # >> > pattern = re.compile("\.|\[([0-9]+)\]")
+    # >> > pattern.split(a)
+    # ['a', None, 'b', None, 'c', '0', '', None, 'd']
 
-        :param k: key element
-        :return:
+    # >> > pattern = re.compile("\.|[\[-\]]+")
+    # >> > pattern.split(a)
+    # ['a', 'b', 'c', '0', '', 'd']
+
+    def __init__(self, model):
         """
-        return k is not None and '.' in k
-
-    def _check_if_raise_accessor_error(self, root_element, root_key_path, rest_key_path):
-        if not isinstance(root_element, ModelDataAccessor):
-            raise ModelDataAccessorError('Wrong relation between "{rest_key_path}" with "{root_key_path}"'.format(
-                rest_key_path=rest_key_path,
-                root_key_path=root_key_path)
-            )
-
-    def __setitem__(self, k, val):
-        """Set any item with the dict default syntax and the following one:
-            model_data['a.b.c'] = 5
-            model_data.a.b.c = 5
-
-        :param k: key element
-        :param val: key value
+        :param model: dictionary or a simple object
         """
-        if self._is_path(k):
-            root_key_path, rest_key_path = k.split('.', 1)
-            root_element = self.setdefault(root_key_path, ModelDataAccessor())
-            self._check_if_raise_accessor_error(root_element, root_key_path, rest_key_path)
-            root_element[rest_key_path] = val
+        self._model = model
+
+    def get(self, name, default=None):
+        pass
+
+    def _get(self, item, attr_name):
+        if isinstance(item, dict):
+            return item[attr_name]
+        elif isinstance(item, list) and isinstance(int(attr_name)):
+            return item[int(attr_name)]
         else:
-            if isinstance(val, dict) and not isinstance(val, ModelDataAccessor):
-                val = ModelDataAccessor(val)
-            dict.__setitem__(self, k, val)
+            return getattr(item, attr_name)
 
-    def __getitem__(self, k):
-        """Get any item with the dict default syntax and the following one:
-                val = model_data.a.b.c
-                val = model_data.get('a.b.c')
+    def _get_target_element(self, items):
+        if len(items) > 0:
+            target_element = self._model
+            for item in items:
+                try:
+                    target_element = getattr(target_element, item)
+                except AttributeError:
+                    raise Exception("{target} has not the attribute {item}".format(target=target_element, item=item))
+            return target_element
+        raise Exception("Items can not be empty")
 
-        :param k: key element
-        """
-        if self._is_path(k):
-            root_key_path, rest_key_path = k.split('.', 1)
-            root_element = dict.__getitem__(self, root_key_path)
-            self._check_if_raise_accessor_error(root_element, root_key_path, rest_key_path)
-            return root_element[rest_key_path]
-        return dict.__getitem__(self, k)
+    def __getattr__(self, item):
+        if self.PATH_SEPARATOR_CHARACTER in item:
+            items = item.split(self.PATH_SEPARATOR_CHARACTER)
+            return self._get_target_element(items)
+        return getattr(self._model, item)
 
-    def __contains__(self, k):
-        """True if ModelDataAccessor has a key k, else False. Valid syntax:
-                'a.b.c' in model_data
+    def __setattr__(self, key, value):
+        if self.PATH_SEPARATOR_CHARACTER in key:
+            items = key.split(self.PATH_SEPARATOR_CHARACTER)
+            target_element = self._get_target_element(items[:-1])
+            setattr(target_element, items[-1], value)
+            return
+        setattr(self._model, key, value)
 
-        :param k: key dict object
-        :return: True or False
-        """
-        if self._is_path(k):
-            root_key_path, rest_key_path = k.split('.', 1)
-            if not dict.__contains__(self, root_key_path):
-                return False
-            root_element = dict.__getitem__(self, root_key_path)
-            if not isinstance(root_element, ModelDataAccessor):
-                return False
-            return rest_key_path in root_element
-        return dict.__contains__(self, k)
-
-    def setdefault(self, k, d=None):
-        if k not in self:
-            self[k] = d
-        return self[k]
-
-    def get(self, k, d=None):
-        if ModelDataAccessor.__contains__(self, k):
-            return ModelDataAccessor.__getitem__(self, k)
-        return d
-
-    __setattr__ = __setitem__
-    __getattr__ = __getitem__
+    def __contains__(self, item):
+        pass

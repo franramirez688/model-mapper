@@ -1,6 +1,3 @@
-from modelform.base import ModelMapper, Form, SubForm, SubListForm
-from modelform.fields import Field, ComposedField, ListComposedField
-
 
 class ChildA(object):
     def __init__(self, val=None):
@@ -64,26 +61,26 @@ grand_parent_data = {
 # {FIELD_NAME: (DB_PATH, OBJ_PATH)}
 
 
-def get_child(prefix_name, db_path, obj_path):
-    return {
-        '%s_name' % prefix_name: Field('%s.name_db' % db_path, '%s.name' % obj_path),
-        '%s_age' % prefix_name: Field('%s.age_db' % db_path, '%s.age' % obj_path),
-    }
-
-
-child_a = get_child('child_a', 'parent_db.child_a_db', 'parent.child_a')
-child_b = get_child('child_b', 'parent_db.child_b_db', 'parent.child_b')
-orphan = get_child('orphan', 'orphan_db', 'orphan')
-children = get_child('children', 'children_db', 'children')
-
-
-mapper = {
-    'child_a_name': ('parent_db.child_a_db.name', 'parent.child_a.age'),
-    'child_a_age': ('parent_db.child_a_db.name', 'parent.child_a.age'),
-    'child_b_name': ('parent_db.child_b_db.name', 'parent.child_b.age'),
-    'child_b_age': ('parent_db.child_b_db.name', 'parent.child_b.age'),
-    'orphan_name': ('orphan_db.name_db', 'orphan_db.age_db'),
-}
+# def get_child(prefix_name, db_path, obj_path):
+#     return {
+#         '%s_name' % prefix_name: Field('%s.name_db' % db_path, '%s.name' % obj_path),
+#         '%s_age' % prefix_name: Field('%s.age_db' % db_path, '%s.age' % obj_path),
+#     }
+#
+#
+# child_a = get_child('child_a', 'parent_db.child_a_db', 'parent.child_a')
+# child_b = get_child('child_b', 'parent_db.child_b_db', 'parent.child_b')
+# orphan = get_child('orphan', 'orphan_db', 'orphan')
+# children = get_child('children', 'children_db', 'children')
+#
+#
+# mapper = {
+#     'child_a_name': ('parent_db.child_a_db.name', 'parent.child_a.age'),
+#     'child_a_age': ('parent_db.child_a_db.name', 'parent.child_a.age'),
+#     'child_b_name': ('parent_db.child_b_db.name', 'parent.child_b.age'),
+#     'child_b_age': ('parent_db.child_b_db.name', 'parent.child_b.age'),
+#     'orphan_name': ('orphan_db.name_db', 'orphan_db.age_db'),
+# }
 
 
 # CLASS MODEL
