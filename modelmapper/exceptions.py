@@ -1,4 +1,6 @@
-
+"""
+    General exceptions
+"""
 
 class FormError(Exception):
     pass
@@ -7,5 +9,14 @@ class FormError(Exception):
 class FieldError(Exception):
     pass
 
-class ModelDataAccessorError(Exception):
+
+class ModelAccessorError(Exception):
+    pass
+
+
+class ModelAccessorAttributeError(ModelAccessorError):
+    pass
+
+
+class ModelAccessorIndexError(ModelAccessorError):
     pass
