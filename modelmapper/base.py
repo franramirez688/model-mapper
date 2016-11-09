@@ -1,4 +1,5 @@
 import six
+import addict
 
 from modelmapper.utils import ModelDataAccessor
 
