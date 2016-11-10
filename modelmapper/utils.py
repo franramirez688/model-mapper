@@ -1,12 +1,31 @@
 import re
 
-from modelmapper.exceptions import ModelAccessorAttributeError, ModelAccessorIndexError, ModelAccessorError
+from modelmapper import exceptions
+
+
+def handle_exceptions(get_or_set):
+    def handle(*args, **kwargs):
+        root = args[0]
+        attr = args[1]
+        try:
+            return get_or_set(*args, **kwargs)
+        except AttributeError:
+            raise exceptions.ModelAccessorAttributeError(
+                "{root} has not the attribute {attr}".format(root=root, attr=attr))
+        except IndexError:
+            raise exceptions.ModelAccessorIndexError(
+                "Not exist the index {index} in {root} object".format(index=attr, root=root))
+        except KeyError:
+            raise exceptions.ModelAccessorKeyError(
+                "{root} has not the key {attr}".format(root=root, attr=attr))
+        except Exception as e:
+            raise exceptions.ModelAccessorError(str(e))
+    return handle
 
 
 class ModelAccessor(object):
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
-
 
     def __init__(self, model):
         """
@@ -15,15 +34,16 @@ class ModelAccessor(object):
         self._model = model
 
     def split(self, name, pattern=None):
-        pattern = pattern or self.SPLIT_ACCESSOR_REGEX
-        return pattern.split(name)
+        pattern = re.compile(pattern) if pattern else self.SPLIT_ACCESSOR_REGEX
+        return filter(None, pattern.split(name))  # delete empty strings
 
     def get(self, name, default=None):
         try:
             return self.__getitem__(name)
-        except ModelAccessorError:
+        except exceptions.ModelAccessorError:
             return default
 
+    @handle_exceptions
     def _get_item(self, root_obj, attr):
         if isinstance(root_obj, dict):
             return root_obj[attr]
@@ -32,6 +52,7 @@ class ModelAccessor(object):
         else:
             return getattr(root_obj, attr)
 
+    @handle_exceptions
     def _set_item(self, root_obj, attr, value):
         if isinstance(root_obj, dict):
             root_obj[attr] = value
@@ -43,19 +64,12 @@ class ModelAccessor(object):
     def _get_target_item(self, items):
         target_item = self._model
         for item in items:
-            try:
-                target_item = self._get_item(target_item, item)
-            except AttributeError:
-                raise ModelAccessorAttributeError("{target} has not the attribute {item}".format(target=target_item, item=item))
-            except IndexError:
-                raise ModelAccessorIndexError("Not exist the index {index} in {target} object".format(index=item, target=target_item))
-            except Exception as e:
-                raise ModelAccessorError(str(e))
+            target_item = self._get_item(target_item, item)
         return target_item
 
     def __getitem__(self, item):
         items = self.split(item)
-        return self._get_target_item(items) if len(items) > 1 else self._get_item(self._model, item[0])
+        return self._get_target_item(items) if len(items) > 1 else self._get_item(self._model, items[0])
 
     def __setitem__(self, item, value):
         items = self.split(item)
@@ -66,5 +80,5 @@ class ModelAccessor(object):
         try:
             self.__getitem__(item)
             return True
-        except ModelAccessorError:
-            return  False
+        except exceptions.ModelAccessorError:
+            return False

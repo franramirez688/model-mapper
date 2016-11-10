@@ -1,5 +1,3 @@
-
-
 import inspect
 
 from modelmapper.exceptions import FieldError

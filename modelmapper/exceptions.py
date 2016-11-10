@@ -2,6 +2,7 @@
     General exceptions
 """
 
+
 class FormError(Exception):
     pass
 
@@ -19,4 +20,8 @@ class ModelAccessorAttributeError(ModelAccessorError):
 
 
 class ModelAccessorIndexError(ModelAccessorError):
+    pass
+
+
+class ModelAccessorKeyError(ModelAccessorError):
     pass
