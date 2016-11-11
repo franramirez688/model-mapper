@@ -33,6 +33,10 @@ class ModelAccessor(object):
         """
         self._model = model
 
+    @property
+    def model(self):
+        return self._model
+
     def split(self, name, pattern=None):
         pattern = re.compile(pattern) if pattern else self.SPLIT_ACCESSOR_REGEX
         return filter(None, pattern.split(name))  # delete empty strings
@@ -63,8 +67,9 @@ class ModelAccessor(object):
 
     def _get_target_item(self, items):
         target_item = self._model
+        getter = self._get_item
         for item in items:
-            target_item = self._get_item(target_item, item)
+            target_item = getter(target_item, item)
         return target_item
 
     def __getitem__(self, item):
@@ -79,6 +84,13 @@ class ModelAccessor(object):
     def __contains__(self, item):
         try:
             self.__getitem__(item)
-            return True
         except exceptions.ModelAccessorError:
             return False
+        else:
+            return True
+
+
+class ModelContainer(object):
+
+    def __init__(self):
+        pass
