@@ -10,20 +10,20 @@ def handle_exceptions(get_or_set):
         try:
             return get_or_set(*args, **kwargs)
         except AttributeError:
-            raise exceptions.ModelAccessorAttributeError(
+            raise exceptions.FieldAccessorAttributeError(
                 "{root} has not the attribute {attr}".format(root=root, attr=attr))
         except IndexError:
-            raise exceptions.ModelAccessorIndexError(
+            raise exceptions.FieldAccessorIndexError(
                 "Not exist the index {index} in {root} object".format(index=attr, root=root))
         except KeyError:
-            raise exceptions.ModelAccessorKeyError(
+            raise exceptions.FieldAccessorKeyError(
                 "{root} has not the key {attr}".format(root=root, attr=attr))
         except Exception as e:
-            raise exceptions.ModelAccessorError(str(e))
+            raise exceptions.FieldAccessorError(str(e))
     return handle
 
 
-class ModelAccessor(object):
+class FieldAccessor(object):
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
 
@@ -32,6 +32,7 @@ class ModelAccessor(object):
         :param model: dictionary or a simple object
         """
         self._model = model
+        self._visited_objects = None
 
     @property
     def model(self):
@@ -44,7 +45,7 @@ class ModelAccessor(object):
     def get(self, name, default=None):
         try:
             return self.__getitem__(name)
-        except exceptions.ModelAccessorError:
+        except exceptions.FieldAccessorError:
             return default
 
     @handle_exceptions
@@ -73,18 +74,18 @@ class ModelAccessor(object):
         return target_item
 
     def __getitem__(self, item):
-        items = self.split(item)
-        return self._get_target_item(items) if len(items) > 1 else self._get_item(self._model, items[0])
+        split_item = self.split(item)
+        return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
 
     def __setitem__(self, item, value):
-        items = self.split(item)
-        parent_target_item = self._get_target_item(items[:-1]) if len(items) > 1 else self._model
-        self._set_item(parent_target_item, items[-1], value)
+        split_item = self.split(item)
+        parent_target_item = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
+        self._set_item(parent_target_item, split_item[-1], value)
 
     def __contains__(self, item):
         try:
             self.__getitem__(item)
-        except exceptions.ModelAccessorError:
+        except exceptions.FieldAccessorError:
             return False
         else:
             return True
@@ -92,5 +93,33 @@ class ModelAccessor(object):
 
 class ModelContainer(object):
 
-    def __init__(self):
-        pass
+        def __init__(self):
+            self._cached_objects = None
+
+# class FieldDictAccessor(FieldAccessor):
+#
+#     @handle_exceptions
+#     def _get_item(self, root_obj, attr):
+#         return root_obj[int(attr)]
+#
+#     @handle_exceptions
+#     def _set_item(self, root_obj, attr, value):
+#         root_obj[attr] = value
+#
+#
+# class FieldListAccessor(FieldAccessor):
+#
+#     @handle_exceptions
+#     def _get_item(self, root_obj, attr):
+#         return root_obj[attr]
+#
+#     @handle_exceptions
+#     def _set_item(self, root_obj, attr, value):
+#         root_obj[int(attr)] = value
+#
+#
+# class FieldTupleAccessor(FieldListAccessor):
+#
+#     @handle_exceptions
+#     def _set_item(self, root_obj, attr, value):
+#         raise exceptions.FieldAccessorAssignmentError("'tuple' object does not support item assignment")

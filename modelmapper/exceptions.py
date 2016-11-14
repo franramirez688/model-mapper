@@ -3,7 +3,7 @@
 """
 
 
-class FormError(Exception):
+class ModelMapperError(Exception):
     pass
 
 
@@ -11,17 +11,21 @@ class FieldError(Exception):
     pass
 
 
-class ModelAccessorError(Exception):
+class FieldAccessorError(Exception):
     pass
 
 
-class ModelAccessorAttributeError(ModelAccessorError):
+class FieldAccessorAttributeError(FieldAccessorError):
     pass
 
 
-class ModelAccessorIndexError(ModelAccessorError):
+class FieldAccessorIndexError(FieldAccessorError):
     pass
 
 
-class ModelAccessorKeyError(ModelAccessorError):
+class FieldAccessorKeyError(FieldAccessorError):
+    pass
+
+
+class FieldAccessorAssignmentError(FieldAccessorError):
     pass
