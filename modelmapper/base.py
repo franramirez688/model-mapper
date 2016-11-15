@@ -44,7 +44,7 @@ class ModelMapper(object):
         try:
             orig_field, dest_field = self._mapper[field_name]
             if isinstance(orig_field, UniformListField):
-                pass
+                dest_field.set_value(orig_field[index])
         except KeyError:
             raise ModelMapperError("The field name {} does not exist".format(field_name))
 
