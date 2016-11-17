@@ -26,6 +26,7 @@ def handle_exceptions(get_or_set):
 class FieldAccessor(object):
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
+    SPECIAL_LIST_INDICATOR = '[*]'
 
     def __init__(self, model):
         """
@@ -53,6 +54,8 @@ class FieldAccessor(object):
         if isinstance(root_obj, dict):
             return root_obj[attr]
         elif isinstance(root_obj, (list, tuple)):
+            if attr == self.SPECIAL_LIST_INDICATOR[1]:
+                return root_obj
             return root_obj[int(attr)]
         else:
             return getattr(root_obj, attr)
@@ -62,6 +65,8 @@ class FieldAccessor(object):
         if isinstance(root_obj, dict):
             root_obj[attr] = value
         elif isinstance(root_obj, list):
+            if attr == self.SPECIAL_LIST_INDICATOR[1]:
+                root_obj = value
             root_obj[int(attr)] = value
         else:
             setattr(root_obj, attr, value)

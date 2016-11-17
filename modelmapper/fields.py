@@ -5,11 +5,10 @@ from modelmapper.exceptions import FieldError
 
 class Field(object):
 
-    def __init__(self, model_origin_access, destination_access, getter=None, setter=None):
+    def __init__(self, access, getter=None, setter=None):
         self.setter = setter
         self.getter = getter
-        self.model_origin_access = model_origin_access
-        self.model_destination_access = destination_access
+        self.access = access
         self.object_destination_instance = None
 
     def set_value(self, value):
