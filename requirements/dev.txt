@@ -2,5 +2,4 @@
 nose==1.3.7
 coverage==4.1
 nose-timer==0.6.0
-nose-xvfb==0.12
 nose-parameterized==0.5.0

@@ -2,7 +2,7 @@ import unittest
 
 from nose_parameterized import parameterized
 
-from modelmapper.utils import FieldAccessor
+from modelmapper.utils import ModelAccessor
 from modelmapper import exceptions
 
 
@@ -44,8 +44,8 @@ class TestModelDataAccessor(unittest.TestCase):
         self._children = get_children_obj()
         self._model_data = get_model_data()
 
-        self._model_data_accessor = FieldAccessor(self._model_data)
-        self._children_accessor = FieldAccessor(self._children)
+        self._model_data_accessor = ModelAccessor(self._model_data)
+        self._children_accessor = ModelAccessor(self._children)
 
     def test_get_value_from_accessor_dict(self):
         self.assertEqual(self._model_data['a']['aa']['aaa'], self._model_data_accessor['a.aa.aaa'])
@@ -55,17 +55,17 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertEqual(self._model_data['c'][0], self._model_data_accessor['c[0]'])
 
     @parameterized.expand([
-        (exceptions.FieldAccessorKeyError, 'a.xx'),
-        (exceptions.FieldAccessorIndexError, 'c[9]'),
-        (exceptions.FieldAccessorKeyError, 'c[0].xx')
+        (exceptions.ModelAccessorKeyError, 'a.xx'),
+        (exceptions.ModelAccessorIndexError, 'c[9]'),
+        (exceptions.ModelAccessorKeyError, 'c[0].xx')
     ])
     def test_get_value_from_accessor_dict_errors(self, e, name):
         with self.assertRaises(e):
             self._model_data_accessor[name]
 
     @parameterized.expand([
-        (exceptions.FieldAccessorIndexError, 'all[5]'),
-        (exceptions.FieldAccessorAttributeError, 'child_b.fake')
+        (exceptions.ModelAccessorIndexError, 'all[5]'),
+        (exceptions.ModelAccessorAttributeError, 'child_b.fake')
     ])
     def test_get_value_from_accessor_dict_errors(self, e, name):
         with self.assertRaises(e):

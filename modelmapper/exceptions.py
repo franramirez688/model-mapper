@@ -11,21 +11,21 @@ class FieldError(Exception):
     pass
 
 
-class FieldAccessorError(Exception):
+class ModelAccessorError(Exception):
     pass
 
 
-class FieldAccessorAttributeError(FieldAccessorError):
+class ModelAccessorAttributeError(ModelAccessorError):
     pass
 
 
-class FieldAccessorIndexError(FieldAccessorError):
+class ModelAccessorIndexError(ModelAccessorError):
     pass
 
 
-class FieldAccessorKeyError(FieldAccessorError):
+class ModelAccessorKeyError(ModelAccessorError):
     pass
 
 
-class FieldAccessorAssignmentError(FieldAccessorError):
+class ModelAccessorAssignmentError(ModelAccessorError):
     pass

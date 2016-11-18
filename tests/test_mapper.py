@@ -107,20 +107,20 @@ def get_origin_model():
             },
             {
                 'c': [
-                    {'a': 1},
-                    {'b': 1}
+                    {'a': 2},
+                    {'b': 2}
                 ],
                 'cc': 'fake',
                 'ccc': [
-                    {'a': 1},
-                    {'a': 1}
+                    {'a': 2},
+                    {'a': 2}
                 ]
             },
         ],
         'dd': {
             'b': {
-                'new_val_1': 'fake',
-                'new_val_2': 'fake'
+                'new_val_1': 'fake1',
+                'new_val_2': 'fake2'
             }
         },
         'ddd': {
@@ -170,21 +170,23 @@ def get_model_mapper_verbose():
     }
 
 
-
 class TestModelMapper(unittest.TestCase):
 
     def setUp(self):
         self._origin_model = get_origin_model()
         self._destination_model = get_destination_model()
         self._mapper = get_model_mapper()
-        self._model_mapper = ModelMapper(self._mapper, self._origin_model, self._destination_model)
+        self._model_mapper = ModelMapper(self._origin_model, self._destination_model, self._mapper)
 
     def test_checking_destination_has_the_correct_initial_values(self):
+        self._model_mapper.prepare_mapper()
         self._model_mapper.update_destination()
 
     def test_checking_destination_updates_index_in_uniform_lists_mappers(self):
+        self._model_mapper.prepare_mapper()
         self._model_mapper.update_destination()
-        self._model_mapper.update_list_index('d_link.ccc_link', 2)
+        self._model_mapper['d_link.ccc_link'].current_index = 1
 
     def test_checking_origin_loads_data_from_destination(self):
+        self._model_mapper.prepare_mapper()
         self._model_mapper.update_origin()

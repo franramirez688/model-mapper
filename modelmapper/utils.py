@@ -1,5 +1,7 @@
 import re
 
+import six
+
 from modelmapper import exceptions
 
 
@@ -10,23 +12,25 @@ def handle_exceptions(get_or_set):
         try:
             return get_or_set(*args, **kwargs)
         except AttributeError:
-            raise exceptions.FieldAccessorAttributeError(
+            raise exceptions.ModelAccessorAttributeError(
                 "{root} has not the attribute {attr}".format(root=root, attr=attr))
         except IndexError:
-            raise exceptions.FieldAccessorIndexError(
+            raise exceptions.ModelAccessorIndexError(
                 "Not exist the index {index} in {root} object".format(index=attr, root=root))
         except KeyError:
-            raise exceptions.FieldAccessorKeyError(
+            raise exceptions.ModelAccessorKeyError(
                 "{root} has not the key {attr}".format(root=root, attr=attr))
         except Exception as e:
-            raise exceptions.FieldAccessorError(str(e))
+            raise exceptions.ModelAccessorError(str(e))
     return handle
 
 
-class FieldAccessor(object):
+class ModelAccessor(object):
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
-    SPECIAL_LIST_INDICATOR = '[*]'
+    SPECIAL_LIST_INDICATOR = "[*]"
+    CUSTOMIZED_GETTER_METHOD = "get_value"
+    CUSTOMIZED_SETTER_METHOD = "set_value"
 
     def __init__(self, model):
         """
@@ -46,8 +50,20 @@ class FieldAccessor(object):
     def get(self, name, default=None):
         try:
             return self.__getitem__(name)
-        except exceptions.FieldAccessorError:
+        except exceptions.ModelAccessorError:
             return default
+
+    # def try_customized_getter(self, root_obj, attr):
+    #     getter = getattr(root_obj, self.CUSTOMIZED_GETTER_METHOD, None)
+    #     if callable(getter):
+    #         return getter()
+    #     return getattr(root_obj, attr)
+    #
+    # def try_customized_setter(self, root_obj, attr, value):
+    #     setter = getattr(root_obj, self.CUSTOMIZED_SETTER_METHOD, None)
+    #     if callable(setter):
+    #         return setter(value)
+    #     return setattr(root_obj, attr, value)
 
     @handle_exceptions
     def _get_item(self, root_obj, attr):
@@ -90,7 +106,7 @@ class FieldAccessor(object):
     def __contains__(self, item):
         try:
             self.__getitem__(item)
-        except exceptions.FieldAccessorError:
+        except exceptions.ModelAccessorError:
             return False
         else:
             return True
@@ -101,18 +117,13 @@ class ModelContainer(object):
         def __init__(self):
             self._cached_objects = None
 
-# class FieldDictAccessor(FieldAccessor):
+class ModelDictAccessor(ModelAccessor):
+
+    def iteritems(self):
+        return six.iteritems(self._model)
+
 #
-#     @handle_exceptions
-#     def _get_item(self, root_obj, attr):
-#         return root_obj[int(attr)]
-#
-#     @handle_exceptions
-#     def _set_item(self, root_obj, attr, value):
-#         root_obj[attr] = value
-#
-#
-# class FieldListAccessor(FieldAccessor):
+# class FieldListAccessor(ModelAccessor):
 #
 #     @handle_exceptions
 #     def _get_item(self, root_obj, attr):
@@ -127,4 +138,4 @@ class ModelContainer(object):
 #
 #     @handle_exceptions
 #     def _set_item(self, root_obj, attr, value):
-#         raise exceptions.FieldAccessorAssignmentError("'tuple' object does not support item assignment")
+#         raise exceptions.ModelAccessorAssignmentError("'tuple' object does not support item assignment")
