@@ -178,15 +178,14 @@ class TestModelMapper(unittest.TestCase):
         self._mapper = get_model_mapper()
         self._model_mapper = ModelMapper(self._origin_model, self._destination_model, self._mapper)
 
-    def test_checking_destination_has_the_correct_initial_values(self):
         self._model_mapper.prepare_mapper()
+
+    def test_checking_destination_loads_data_from_origin(self):
         self._model_mapper.update_destination()
 
     def test_checking_destination_updates_index_in_uniform_lists_mappers(self):
-        self._model_mapper.prepare_mapper()
         self._model_mapper.update_destination()
         self._model_mapper['d_link.ccc_link'].current_index = 1
 
     def test_checking_origin_loads_data_from_destination(self):
-        self._model_mapper.prepare_mapper()
         self._model_mapper.update_origin()

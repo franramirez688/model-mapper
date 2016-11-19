@@ -3,6 +3,7 @@ from collections import MutableMapping
 import six
 
 from modelmapper.exceptions import ModelMapperError
+from modelmapper.fields import Field
 from modelmapper.utils import ModelAccessor, ModelDictAccessor
 
 
@@ -46,17 +47,19 @@ class ModelMapper(object):
 
     def update_origin(self):
         dest_accessor = self._destination_model_accessor
+        # orig_accessor = self._origin_model_accessor
         for link_name, link_value in six.iteritems(self._mapper):
             if isinstance(link_value, ModelMapper):
                 link_value.update_origin()
                 continue
+            # orig_accessor[link_value[0]] = dest_accessor[link_value[1]]
             link_value[0].set_value(dest_accessor[link_value[1].access])
 
     def update_destination(self):
         orig_accessor = self._origin_model_accessor
         for link_name, link_value in six.iteritems(self._mapper):
             if isinstance(link_value, ModelMapper):
-                link_value.update_origin()
+                link_value.update_destination()
                 continue
             link_value[1].set_value(orig_accessor[link_value[0].access])
 
@@ -65,6 +68,8 @@ class ModelMapper(object):
 
     def __setitem__(self, key, value):
         self._mapper[key] = value
+
+    __getattr__ = __getitem__
 
 
 # TODO: At this moment is only possible to be the origin a list

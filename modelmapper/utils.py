@@ -53,18 +53,6 @@ class ModelAccessor(object):
         except exceptions.ModelAccessorError:
             return default
 
-    # def try_customized_getter(self, root_obj, attr):
-    #     getter = getattr(root_obj, self.CUSTOMIZED_GETTER_METHOD, None)
-    #     if callable(getter):
-    #         return getter()
-    #     return getattr(root_obj, attr)
-    #
-    # def try_customized_setter(self, root_obj, attr, value):
-    #     setter = getattr(root_obj, self.CUSTOMIZED_SETTER_METHOD, None)
-    #     if callable(setter):
-    #         return setter(value)
-    #     return setattr(root_obj, attr, value)
-
     @handle_exceptions
     def _get_item(self, root_obj, attr):
         if isinstance(root_obj, dict):
@@ -117,12 +105,13 @@ class ModelContainer(object):
         def __init__(self):
             self._cached_objects = None
 
+
 class ModelDictAccessor(ModelAccessor):
 
     def iteritems(self):
         return six.iteritems(self._model)
 
-#
+
 # class FieldListAccessor(ModelAccessor):
 #
 #     @handle_exceptions
