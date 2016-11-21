@@ -1,4 +1,5 @@
 import re
+from abc import ABCMeta
 
 import six
 
@@ -83,10 +84,19 @@ class ModelAccessor(object):
         return target_item
 
     def __getitem__(self, item):
+        if isinstance(item, FieldAccessor):
+            if item.access_object is None:
+                item.access_object = self.__getitem__(item.access_path)
+            return item.get_value()
         split_item = self.split(item)
         return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
 
     def __setitem__(self, item, value):
+        if isinstance(item, FieldAccessor):
+            if item.access_object is None:
+                item.access_object = self.__getitem__(item.access_path)
+            item.set_value(value)
+            return
         split_item = self.split(item)
         parent_target_item = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
         self._set_item(parent_target_item, split_item[-1], value)
@@ -110,6 +120,21 @@ class ModelDictAccessor(ModelAccessor):
 
     def iteritems(self):
         return six.iteritems(self._model)
+
+
+class FieldAccessor(object):
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, access_path):
+        self.access_path = access_path
+        self.access_object = None
+
+    def set_value(self, value):
+        raise NotImplemented
+
+    def get_value(self):
+        raise NotImplemented
 
 
 # class FieldListAccessor(ModelAccessor):

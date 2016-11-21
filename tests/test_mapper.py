@@ -1,73 +1,9 @@
 import unittest
 
+from nose_parameterized import parameterized
+
 from modelmapper.base import ModelMapper
 from modelmapper.fields import Field
-
-
-# class Child(object):
-#     name = None
-#     age = None
-#
-# class ChildA(object):
-#     value = None
-#
-#
-# class ChildB(object):
-#     text = 'Child B'
-#     books = {'FB': 'First Book'}
-#
-#
-# class OtherChilds(object):
-#     one = ChildA()
-#     two = ChildB()
-#
-#
-# class Children(object):
-#     child_a = ChildA()
-#     child_b = ChildB()
-#     child = Child()
-#     others = OtherChilds()
-#
-#
-# def get_origin_model():
-#     return {
-#         'a': {'aa': {'aaa': 7}},
-#         'b': 5,
-#         'c': [{'c1': 5, 'c2': 7},
-#               {'c1': 6, 'c2': 8}],
-#         'd': {
-#             'd1': 'fake d1',
-#             'd2': 'fake d2'
-#         }
-#     }
-#
-#
-# def get_destination_model():
-#     return Children()
-#
-#
-# def get_list_uniform_mapper():
-#     return {
-#         'name_link': (Field('c1'), Field('name')),
-#         'age_link': (Field('c2'), Field('age'))
-#     }
-#
-#
-# def get_composed_mapper():
-#     return {
-#         'one_link': (Field('d1'), Field('one.value')),
-#         'two_link': (Field('d2'), Field('two.text'))
-#     }
-#
-# def get_mapper_model():
-#     return {
-#         'child_a_link': (Field('a.aa.aaa'), Field('child_a.value')),
-#         'child_b_link': (Field('a.aa.aaa'), Field('child_a.value')),
-#         'child_link': ('c[*]', 'child', get_list_uniform_mapper()),
-#         'others_link': ('d', 'others', get_composed_mapper())
-#     }
-#
-
 
 
 class A(object):
@@ -97,23 +33,23 @@ def get_origin_model():
             {
                 'c': [
                     {'a': 1},
-                    {'b': 1}
+                    {'b': 2}
                 ],
-                'cc': 'fake',
+                'cc': 'fake 1',
                 'ccc': [
                     {'a': 1},
-                    {'a': 1}
+                    {'a': 2}
                 ]
             },
             {
                 'c': [
-                    {'a': 2},
-                    {'b': 2}
+                    {'a': 3},
+                    {'b': 4}
                 ],
-                'cc': 'fake',
+                'cc': 'fake 2',
                 'ccc': [
-                    {'a': 2},
-                    {'a': 2}
+                    {'a': 3},
+                    {'a': 4}
                 ]
             },
         ],
@@ -136,7 +72,7 @@ def get_destination_model():
 
 def get_child_x_mapper(x):
     return {
-       '{}_link'.format(x): (Field(x), Field('val_{}'.format(x)))
+       '{}_link'.format(x): (x, 'val_{}'.format(x))
     }
 
 
@@ -144,7 +80,7 @@ def get_d_mapper():
     return {
         'c_0_link': ('c[0]', 'val_c[0]', get_child_x_mapper('a')),
         'c_1_link': ('c[1]', 'val_c[1]', get_child_x_mapper('b')),
-        'cc_link': (Field('cc'), Field('val_cc')),
+        'cc_link': ('cc', 'val_cc'),
         'ccc_link': ('ccc[*]', 'val_ccc', get_child_x_mapper('a'))
     }
 
@@ -152,22 +88,22 @@ def get_d_mapper():
 def get_model_mapper():
     return {
         'd_link': ('d[*]', 'val_d', get_d_mapper()),
-        'dd_link': (Field('dd.b'), Field('val_dd.val_b')),
-        'ddd_link': (Field('ddd.a'), Field('val_ddd.val_a')),
-        'dddd_link': (Field('dddd'), Field('val_dddd')),
+        'dd_link': ('dd.b', 'val_dd.val_b'),
+        'ddd_link': ('ddd.a', 'val_ddd.val_a'),
+        'dddd_link': ('dddd', 'val_dddd'),
     }
 
 
-def get_model_mapper_verbose():
-    return {
-        'c_0_link.child_a_link.child_a_link': (Field('d[*].c[0].a'), Field('val_d.val_c[0].val_a')),
-        'c_1_link.child_b_link.child_b_link': (Field('d[*].c[1].b'), Field('val_d.val_c[1].val_b')),
-        'cc_link': (Field('d[*].cc'), Field('val_d.val_cc')),
-        'ccc_link': (Field('d[*].ccc[*]'), Field('val_d.val_ccc.val_a')),
-        'dd_link': (Field('dd.b'), Field('val_dd.val_b')),
-        'ddd_link': (Field('ddd.a'), Field('val_ddd.val_a')),
-        'dddd_link': (Field('dddd'), Field('val_dddd')),
-    }
+# def get_model_mapper_verbose():
+#     return {
+#         'c_0_link.child_a_link.child_a_link': ('d[*].c[0].a', 'val_d.val_c[0].val_a'),
+#         'c_1_link.child_b_link.child_b_link': ('d[*].c[1].b', 'val_d.val_c[1].val_b'),
+#         'cc_link': ('d[*].cc', 'val_d.val_cc'),
+#         'ccc_link': ('d[*].ccc[*]', 'val_d.val_ccc.val_a'),
+#         'dd_link': ('dd.b', 'val_dd.val_b'),
+#         'ddd_link': ('ddd.a', 'val_ddd.val_a'),
+#         'dddd_link': ('dddd', 'val_dddd'),
+#     }
 
 
 class TestModelMapper(unittest.TestCase):
@@ -180,12 +116,46 @@ class TestModelMapper(unittest.TestCase):
 
         self._model_mapper.prepare_mapper()
 
-    def test_checking_destination_loads_data_from_origin(self):
-        self._model_mapper.update_destination()
+    def _assert_d_link_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
+        orig_parent = self._origin_model['d'][d_link_index]
+        dest_parent = self._destination_model.val_d
+        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
 
-    def test_checking_destination_updates_index_in_uniform_lists_mappers(self):
+        assert_(orig_parent['c'][0]['a'], dest_parent.val_c[0].val_a)
+        assert_(orig_parent['c'][1]['b'], dest_parent.val_c[1].val_b)
+        assert_(orig_parent['cc'], dest_parent.val_cc)
+        self._assert_ccc_link_values(d_link_index, ccc_link_index, assert_equal)
+
+    def _assert_ccc_link_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
+        orig_parent = self._origin_model['d'][d_link_index]
+        dest_parent = self._destination_model.val_d
+        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
+
+        assert_(orig_parent['ccc'][ccc_link_index]['a'], dest_parent.val_ccc.val_a)
+
+    def _compare_origin_vs_destination_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
+        self._assert_d_link_values(d_link_index, ccc_link_index, assert_equal)
+
+        self.assertEqual(self._origin_model['dd']['b'], self._destination_model.val_dd.val_b)
+        self.assertEqual(self._origin_model['ddd']['a'], self._destination_model.val_ddd.val_a)
+        self.assertEqual(self._origin_model['dddd'], self._destination_model.val_dddd)
+
+    def test_destination_loads_data_from_origin(self):
+        self._model_mapper.update_destination()
+        self._compare_origin_vs_destination_values()
+
+    @parameterized.expand([
+        ("values are equal", 1, True),
+        ("values are not equal", 0, False)
+    ])
+    def test_destination_updates_index_in_uniform_lists_mappers(self, _, ccc_link_index, assert_equal):
         self._model_mapper.update_destination()
         self._model_mapper['d_link.ccc_link'].current_index = 1
+        self._assert_ccc_link_values(ccc_link_index=ccc_link_index, assert_equal=assert_equal)
 
-    def test_checking_origin_loads_data_from_destination(self):
+    def test_origin_loads_data_from_destination(self):
+        self._destination_model.val_dd.val_b = "New fake value 1"
+        self._destination_model.val_ddd.val_a = "New fake value 2"
+        self._destination_model.val_dddd = "New fake value 3"
         self._model_mapper.update_origin()
+        self._compare_origin_vs_destination_values()
