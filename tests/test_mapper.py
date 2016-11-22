@@ -3,7 +3,6 @@ import unittest
 from nose_parameterized import parameterized
 
 from modelmapper.base import ModelMapper
-from modelmapper.fields import Field
 
 
 class A(object):
@@ -116,7 +115,55 @@ class TestModelMapper(unittest.TestCase):
 
         self._model_mapper.prepare_mapper()
 
-    def _assert_d_link_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
+    def test_destination_loads_data_from_origin(self):
+        self._model_mapper.update_destination()
+        self._assert_all()
+
+    def test_origin_loads_data_from_destination(self):
+        self._initialize_destination_values()
+        self._model_mapper.update_origin()
+        self._assert_all()
+
+    @parameterized.expand([
+        ("values are equal", 1, True),
+        ("values are not equal", 0, False)
+    ])
+    def test_destination_updates_index_in_child_uniform_lists_mappers(self, _, ccc_link_index, assert_equal):
+        self._model_mapper.update_destination()
+        self._model_mapper['d_link.ccc_link'].current_index = 1
+        self._assert_child_uniform_model_list_values(ccc_link_index=ccc_link_index, assert_equal=assert_equal)
+
+    @parameterized.expand([
+        ("values are equal", 1, True),
+        ("values are not equal", 0, False)
+    ])
+    def test_destination_updates_index_in_parent_uniform_lists_mappers(self, _, d_link_index, assert_equal):
+        self._model_mapper.update_destination()
+        self._model_mapper['d_link'].current_index = 1
+        self._assert_parent_uniform_model_list_values(d_link_index=d_link_index, assert_equal=assert_equal)
+        self._assert_child_uniform_model_list_values(d_link_index=d_link_index, assert_equal=assert_equal)
+
+    def _initialize_destination_values(self):
+        self._destination_model.val_d.val_c[0].val_a = "New test val_d.val_c[0].val_a"
+        self._destination_model.val_d.val_c[1].val_b = "New test val_d.val_c[1].val_b"
+        self._destination_model.val_d.val_cc = "New test val_d.val_cc"
+        self._destination_model.val_d.val_ccc.val_a = "New test val_d.val_ccc.val_a"
+        self._destination_model.val_dd.val_b = "New test val_dd.val_b"
+        self._destination_model.val_ddd.val_a = "New test val_ddd.val_a"
+        self._destination_model.val_dddd = "New test val_dddd"
+
+    def _assert_all(self):
+        self._assert_root_basic_values()
+
+        self._assert_parent_uniform_model_list_values()
+        self._assert_child_uniform_model_list_values()
+        self._assert_child_uniform_model_list_values(ccc_link_index=1, assert_equal=False)
+
+        self._assert_parent_uniform_model_list_values(d_link_index=1, assert_equal=False)
+        self._assert_child_uniform_model_list_values(d_link_index=1, ccc_link_index=0, assert_equal=False)
+        self._assert_child_uniform_model_list_values(d_link_index=1, ccc_link_index=1, assert_equal=False)
+
+    def _assert_parent_uniform_model_list_values(self, d_link_index=0, assert_equal=True):
         orig_parent = self._origin_model['d'][d_link_index]
         dest_parent = self._destination_model.val_d
         assert_ = self.assertEqual if assert_equal else self.assertNotEqual
@@ -124,38 +171,17 @@ class TestModelMapper(unittest.TestCase):
         assert_(orig_parent['c'][0]['a'], dest_parent.val_c[0].val_a)
         assert_(orig_parent['c'][1]['b'], dest_parent.val_c[1].val_b)
         assert_(orig_parent['cc'], dest_parent.val_cc)
-        self._assert_ccc_link_values(d_link_index, ccc_link_index, assert_equal)
 
-    def _assert_ccc_link_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
+    def _assert_child_uniform_model_list_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
         orig_parent = self._origin_model['d'][d_link_index]
         dest_parent = self._destination_model.val_d
         assert_ = self.assertEqual if assert_equal else self.assertNotEqual
 
         assert_(orig_parent['ccc'][ccc_link_index]['a'], dest_parent.val_ccc.val_a)
 
-    def _compare_origin_vs_destination_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
-        self._assert_d_link_values(d_link_index, ccc_link_index, assert_equal)
+    def _assert_root_basic_values(self, assert_equal=True):
+        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
 
-        self.assertEqual(self._origin_model['dd']['b'], self._destination_model.val_dd.val_b)
-        self.assertEqual(self._origin_model['ddd']['a'], self._destination_model.val_ddd.val_a)
-        self.assertEqual(self._origin_model['dddd'], self._destination_model.val_dddd)
-
-    def test_destination_loads_data_from_origin(self):
-        self._model_mapper.update_destination()
-        self._compare_origin_vs_destination_values()
-
-    @parameterized.expand([
-        ("values are equal", 1, True),
-        ("values are not equal", 0, False)
-    ])
-    def test_destination_updates_index_in_uniform_lists_mappers(self, _, ccc_link_index, assert_equal):
-        self._model_mapper.update_destination()
-        self._model_mapper['d_link.ccc_link'].current_index = 1
-        self._assert_ccc_link_values(ccc_link_index=ccc_link_index, assert_equal=assert_equal)
-
-    def test_origin_loads_data_from_destination(self):
-        self._destination_model.val_dd.val_b = "New fake value 1"
-        self._destination_model.val_ddd.val_a = "New fake value 2"
-        self._destination_model.val_dddd = "New fake value 3"
-        self._model_mapper.update_origin()
-        self._compare_origin_vs_destination_values()
+        assert_(self._origin_model['dd']['b'], self._destination_model.val_dd.val_b)
+        assert_(self._origin_model['ddd']['a'], self._destination_model.val_ddd.val_a)
+        assert_(self._origin_model['dddd'], self._destination_model.val_dddd)

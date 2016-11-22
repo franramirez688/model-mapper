@@ -8,8 +8,8 @@ from modelmapper import exceptions
 
 def handle_exceptions(get_or_set):
     def handle(*args, **kwargs):
-        root = args[0]
-        attr = args[1]
+        root = args[1]
+        attr = args[2]
         try:
             return get_or_set(*args, **kwargs)
         except AttributeError:
@@ -135,21 +135,3 @@ class FieldAccessor(object):
 
     def get_value(self):
         raise NotImplemented
-
-
-# class FieldListAccessor(ModelAccessor):
-#
-#     @handle_exceptions
-#     def _get_item(self, root_obj, attr):
-#         return root_obj[attr]
-#
-#     @handle_exceptions
-#     def _set_item(self, root_obj, attr, value):
-#         root_obj[int(attr)] = value
-#
-#
-# class FieldTupleAccessor(FieldListAccessor):
-#
-#     @handle_exceptions
-#     def _set_item(self, root_obj, attr, value):
-#         raise exceptions.ModelAccessorAssignmentError("'tuple' object does not support item assignment")
