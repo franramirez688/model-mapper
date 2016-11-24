@@ -44,9 +44,10 @@ class ModelAccessor(object):
     def model(self):
         return self._model
 
-    def split(self, name, pattern=None):
-        pattern = re.compile(pattern) if pattern else self.SPLIT_ACCESSOR_REGEX
-        return filter(None, pattern.split(name))  # delete empty strings
+    @staticmethod
+    def split(name, pattern=None, **kwargs):
+        pattern = re.compile(pattern) if pattern else ModelAccessor.SPLIT_ACCESSOR_REGEX
+        return filter(None, pattern.split(name, **kwargs))  # delete empty strings
 
     def get(self, name, default=None):
         try:
@@ -59,8 +60,6 @@ class ModelAccessor(object):
         if isinstance(root_obj, dict):
             return root_obj[attr]
         elif isinstance(root_obj, (list, tuple)):
-            if attr == self.SPECIAL_LIST_INDICATOR[1]:
-                return root_obj
             return root_obj[int(attr)]
         else:
             return getattr(root_obj, attr)
@@ -70,8 +69,6 @@ class ModelAccessor(object):
         if isinstance(root_obj, dict):
             root_obj[attr] = value
         elif isinstance(root_obj, list):
-            if attr == self.SPECIAL_LIST_INDICATOR[1]:
-                root_obj = value
             root_obj[int(attr)] = value
         else:
             setattr(root_obj, attr, value)
@@ -83,23 +80,42 @@ class ModelAccessor(object):
             target_item = getter(target_item, item)
         return target_item
 
+    def _set_field_accessor(self, item, value):
+        if item.access_object is None:
+            item.access_object = self.__getitem__(item.access_path)
+        item.set_value(value)
+
+    def _get_field_accessor(self, item):
+        if item.access_object is None:
+            item.access_object = self.__getitem__(item.access_path)
+        return item.get_value()
+
+    def _get_item_value(self, item):
+        split_item = item if isinstance(item, list) else self.split(item)
+        return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
+
+    def _get_root_obj_and_attr(self, item):
+        split_item = item if isinstance(item, list) else self.split(item)
+        root_obj = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
+        return root_obj, split_item[-1]
+
     def __getitem__(self, item):
         if isinstance(item, FieldAccessor):
-            if item.access_object is None:
-                item.access_object = self.__getitem__(item.access_path)
-            return item.get_value()
-        split_item = self.split(item)
-        return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
+            return self._get_field_accessor(item)
+        elif self.SPECIAL_LIST_INDICATOR in item:
+            return SpecialListAccessor.get_item(self, item)
+        return self._get_item_value(item)
 
     def __setitem__(self, item, value):
         if isinstance(item, FieldAccessor):
-            if item.access_object is None:
-                item.access_object = self.__getitem__(item.access_path)
-            item.set_value(value)
+            self._set_field_accessor(item, value)
             return
-        split_item = self.split(item)
-        parent_target_item = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
-        self._set_item(parent_target_item, split_item[-1], value)
+        elif self.SPECIAL_LIST_INDICATOR in item:
+            SpecialListAccessor.set_item(self, item, value)
+            return
+
+        root_obj, attr = self._get_root_obj_and_attr(item)
+        self._set_item(root_obj, attr, value)
 
     def __contains__(self, item):
         try:
@@ -114,6 +130,38 @@ class ModelContainer(object):
 
         def __init__(self):
             self._cached_objects = None
+
+
+class SpecialListAccessor(object):
+
+    SPLIT_ACCESSOR_REGEX = re.compile(r"\[\*\]\.|\[\*\]")
+
+    @staticmethod
+    def split_list_items(item):
+        special_list_item = ModelAccessor.split(item, pattern=SpecialListAccessor.SPLIT_ACCESSOR_REGEX, maxsplit=1)
+        return special_list_item[0], special_list_item[1] if len(special_list_item) > 1 else None
+
+    @staticmethod
+    def get_item(model_accessor, item):
+        list_access, list_new_items = SpecialListAccessor.split_list_items(item)
+        if list_new_items is None:
+            return model_accessor[list_access]
+        else:
+            ret = []
+            for item in model_accessor[list_access]:
+                item_accessor = ModelAccessor(item)
+                ret.append(item_accessor[list_new_items])
+            return ret
+
+    @staticmethod
+    def set_item(model_accessor, item, value):
+        list_access, list_new_items = SpecialListAccessor.split_list_items(item)
+        if list_new_items is None:
+            model_accessor[list_access] = value
+        else:
+            for item in model_accessor[list_access]:
+                item_accessor = ModelAccessor(item)
+                item_accessor[list_new_items] = value
 
 
 class ModelDictAccessor(ModelAccessor):

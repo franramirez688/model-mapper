@@ -2,7 +2,7 @@ import unittest
 
 from nose_parameterized import parameterized
 
-from modelmapper.utils import ModelAccessor
+from modelmapper.utils import ModelAccessor, FieldAccessor
 from modelmapper import exceptions
 
 
@@ -19,10 +19,35 @@ class ChildC(object):
     value = [1, 2, 3, 4]
 
 
+class ChildD(object):
+
+    def __init__(self):
+        self._text = None
+
+    @property
+    def text(self):
+        return self._text
+
+    def set_text(self, value):
+        self._text = value
+
+
 class Children(object):
     child_a = ChildA()
     child_b = ChildB()
     all = [ChildB(), ChildA()]
+
+
+class FieldChildD(FieldAccessor):
+
+    def __init__(self):
+        super(FieldChildD, self).__init__('b')
+
+    def set_value(self, value):
+        self.access_object.set_text(value)
+
+    def get_value(self):
+        return self.access_object.text
 
 
 def get_children_obj():
@@ -34,7 +59,7 @@ def get_model_data():
         'a': {'aa': {'aaa': 7}},
         'b': 5,
         'c': [{'c1': 5, 'c2': 7},
-              {'c1': 6, 'c2': 8}]
+              {'c1': 6, 'c2': 8}],
     }
 
 
@@ -81,10 +106,12 @@ class TestModelDataAccessor(unittest.TestCase):
         self._model_data_accessor['a.aa.aaa'] = 10
         self._model_data_accessor['a.bb'] = 15
         self._model_data_accessor['b'] = 25
+        self._model_data_accessor['c'] = [1, 2, 3, 4]
 
         self.assertEqual(self._model_data['a']['aa']['aaa'], 10)
         self.assertEqual(self._model_data['a']['bb'], 15)
         self.assertEqual(self._model_data['b'], 25)
+        self.assertEqual(self._model_data['c'], [1, 2, 3, 4])
 
     def test_set_value_from_accessor_object(self):
         self._children_accessor['child_a.value'] = 10
@@ -107,3 +134,21 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertTrue('child_c' not in self._children_accessor)
         self.assertTrue('all[1].value' in self._children_accessor)
         self.assertTrue('all[0].books.FB' in self._children_accessor)
+
+    def test_special_character_list_in_simple_get_item(self):
+        self.assertEqual(self._model_data['c'], self._model_data_accessor['c[*]'])
+
+    def test_special_character_list_in_complex_get_item(self):
+        expected = []
+        for item in self._model_data['c']:
+            expected.append(item['c1'])
+        self.assertEqual(expected, self._model_data_accessor['c[*].c1'])
+
+    def test_special_character_list_in_simple_set_item(self):
+        self._model_data_accessor['c[*]'] = [1, 2]
+        self.assertEqual(self._model_data['c'], [1, 2])
+
+    def test_special_character_list_in_complex_set_item(self):
+        self._model_data_accessor['c[*].c1'] = 1
+        for item in self._model_data['c']:
+            self.assertEqual(item['c1'], 1)
