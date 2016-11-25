@@ -4,6 +4,7 @@ from abc import ABCMeta
 import six
 
 from modelmapper import exceptions
+from modelmapper.compat import filter
 
 
 def handle_exceptions(get_or_set):
@@ -47,7 +48,7 @@ class ModelAccessor(object):
     @staticmethod
     def split(name, pattern=None, **kwargs):
         pattern = re.compile(pattern) if pattern else ModelAccessor.SPLIT_ACCESSOR_REGEX
-        return filter(None, pattern.split(name, **kwargs))  # delete empty strings
+        return list(filter(None, pattern.split(name, **kwargs)))  # delete empty strings
 
     def get(self, name, default=None):
         try:
@@ -80,16 +81,6 @@ class ModelAccessor(object):
             target_item = getter(target_item, item)
         return target_item
 
-    def _set_field_accessor(self, item, value):
-        if item.access_object is None:
-            item.access_object = self.__getitem__(item.access_path)
-        item.set_value(value)
-
-    def _get_field_accessor(self, item):
-        if item.access_object is None:
-            item.access_object = self.__getitem__(item.access_path)
-        return item.get_value()
-
     def _get_item_value(self, item):
         split_item = item if isinstance(item, list) else self.split(item)
         return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
@@ -101,14 +92,16 @@ class ModelAccessor(object):
 
     def __getitem__(self, item):
         if isinstance(item, FieldAccessor):
-            return self._get_field_accessor(item)
+            item.field = self[item.access]
+            return item.get_value()
         elif self.SPECIAL_LIST_INDICATOR in item:
             return SpecialListAccessor.get_item(self, item)
         return self._get_item_value(item)
 
     def __setitem__(self, item, value):
         if isinstance(item, FieldAccessor):
-            self._set_field_accessor(item, value)
+            item.field = self[item.access]
+            item.set_value(value)
             return
         elif self.SPECIAL_LIST_INDICATOR in item:
             SpecialListAccessor.set_item(self, item, value)
@@ -174,9 +167,9 @@ class FieldAccessor(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, access_path):
-        self.access_path = access_path
-        self.access_object = None
+    def __init__(self, access):
+        self.access = access
+        self.field = None
 
     def set_value(self, value):
         raise NotImplemented

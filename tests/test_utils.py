@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from nose_parameterized import parameterized
@@ -152,3 +153,30 @@ class TestModelDataAccessor(unittest.TestCase):
         self._model_data_accessor['c[*].c1'] = 1
         for item in self._model_data['c']:
             self.assertEqual(item['c1'], 1)
+
+
+class TestPerformanceModelAccessor(unittest.TestCase):
+
+    def setUp(self):
+        self._num_recursion = 256
+        self._dict_var_name = 'more_longer_name'
+        self._model_data = json.loads(''.join(self._create_massive_model()))
+        self._model_accessor = ModelAccessor(self._model_data)
+        self._item_access = '.'.join([self._dict_var_name for _ in range(self._num_recursion)])
+
+    def test_performance_in_get_item(self):
+        for _ in range(5):
+            self.assertEqual(self._model_accessor[self._item_access], self._num_recursion)
+
+    def test_performance_in_set_item(self):
+        for _ in range(4):
+            self._model_accessor[self._item_access] = 8
+        self.assertEqual(self._model_accessor[self._item_access], 8)
+
+    def _create_massive_model(self):
+        data = []
+        for i in range(self._num_recursion):
+            data.append('{{"{}": '.format(self._dict_var_name))
+        data.append("{}".format(self._num_recursion))
+        data.append("}" * self._num_recursion )
+        return data

@@ -3,6 +3,7 @@ import unittest
 from nose_parameterized import parameterized
 
 from modelmapper.base import ModelMapper
+from modelmapper.utils import FieldAccessor
 
 
 class A(object):
@@ -19,11 +20,24 @@ class C(object):
     val_ccc = A()
 
 
+class Complex(object):
+
+    def __init__(self):
+        self._val = None
+
+    def set_val(self, value):
+        self._val = value
+
+    def get_val(self):
+        return self._val
+
+
 class D(object):
     val_d = C()
     val_dd = B()
     val_ddd = A()
     val_dddd = None
+    val_complex = Complex()
 
 
 def get_origin_model():
@@ -61,8 +75,18 @@ def get_origin_model():
         'ddd': {
             'a': 1
         },
-        'dddd': 1
+        'dddd': 1,
+        'complex': "fake1"
     }
+
+
+class ComplexAccessor(FieldAccessor):
+
+    def get_value(self):
+        return self.field.get_val()
+
+    def set_value(self, value):
+        self.field.set_val(value)
 
 
 def get_destination_model():
@@ -90,19 +114,8 @@ def get_model_mapper():
         'dd_link': ('dd.b', 'val_dd.val_b'),
         'ddd_link': ('ddd.a', 'val_ddd.val_a'),
         'dddd_link': ('dddd', 'val_dddd'),
+        'complex_link': ('complex', ComplexAccessor('val_complex'))
     }
-
-
-# def get_model_mapper_verbose():
-#     return {
-#         'c_0_link.child_a_link.child_a_link': ('d[*].c[0].a', 'val_d.val_c[0].val_a'),
-#         'c_1_link.child_b_link.child_b_link': ('d[*].c[1].b', 'val_d.val_c[1].val_b'),
-#         'cc_link': ('d[*].cc', 'val_d.val_cc'),
-#         'ccc_link': ('d[*].ccc[*]', 'val_d.val_ccc.val_a'),
-#         'dd_link': ('dd.b', 'val_dd.val_b'),
-#         'ddd_link': ('ddd.a', 'val_ddd.val_a'),
-#         'dddd_link': ('dddd', 'val_dddd'),
-#     }
 
 
 class TestModelMapper(unittest.TestCase):
@@ -151,6 +164,7 @@ class TestModelMapper(unittest.TestCase):
         self._destination_model.val_dd.val_b = "New test val_dd.val_b"
         self._destination_model.val_ddd.val_a = "New test val_ddd.val_a"
         self._destination_model.val_dddd = "New test val_dddd"
+        self._destination_model.val_complex.set_val("New test val_complex")
 
     def _assert_all(self):
         self._assert_root_basic_values()
@@ -185,3 +199,4 @@ class TestModelMapper(unittest.TestCase):
         assert_(self._origin_model['dd']['b'], self._destination_model.val_dd.val_b)
         assert_(self._origin_model['ddd']['a'], self._destination_model.val_ddd.val_a)
         assert_(self._origin_model['dddd'], self._destination_model.val_dddd)
+        assert_(self._origin_model['complex'], self._destination_model.val_complex.get_val())
