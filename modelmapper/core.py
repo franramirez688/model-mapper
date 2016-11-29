@@ -3,7 +3,7 @@ from collections import MutableMapping
 import six
 
 from modelmapper.exceptions import ModelMapperError
-from modelmapper.utils import ModelAccessor, ModelDictAccessor
+from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
 
 
 class ModelMapper(object):
@@ -47,8 +47,21 @@ class ModelMapper(object):
         self._children_accesses.add((model_mapper, orig_model, dest_model))
         return model_mapper
 
+    def set_field_parent_accessor(self, orig_field, dest_field):
+
+        def _set_parent_accessor(field, parent_accessor):
+            if isinstance(field, FieldAccessor):
+                field.parent_accessor = parent_accessor
+
+        _set_parent_accessor(orig_field, self._origin_model_accessor)
+        _set_parent_accessor(dest_field, self._destination_model_accessor)
+
+
     def _prepare_mapper(self):
+        set_field_parent_accessor = self.set_field_parent_accessor
         for link_name, link_args in self._mapper_accessor.iteritems():
+            if len(link_args) == 2:
+                set_field_parent_accessor(*link_args)
             if len(link_args) == 3:
                 yield link_name, self._get_model_mapper(*link_args)
 

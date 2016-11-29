@@ -29,3 +29,7 @@ class ModelAccessorKeyError(ModelAccessorError):
 
 class ModelAccessorAssignmentError(ModelAccessorError):
     pass
+
+
+class FieldAccessorError(Exception):
+    pass

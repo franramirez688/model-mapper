@@ -2,8 +2,8 @@ import unittest
 
 from nose_parameterized import parameterized
 
-from modelmapper.base import ModelMapper
-from modelmapper.utils import FieldAccessor
+from modelmapper.core import ModelMapper
+from modelmapper.accessors import FieldAccessor
 
 
 class A(object):

@@ -3,7 +3,7 @@ import unittest
 
 from nose_parameterized import parameterized
 
-from modelmapper.utils import ModelAccessor, FieldAccessor
+from modelmapper.accessors import ModelAccessor, FieldAccessor
 from modelmapper import exceptions
 
 
