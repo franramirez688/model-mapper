@@ -38,23 +38,19 @@ class ModelMapper(object):
         list_indicator = ModelAccessor.SPECIAL_LIST_INDICATOR
         return list_indicator in orig or list_indicator in dest
 
-    def _prepare_mapper(self):
-        orig_accessor = self._origin_model_accessor
-        dest_accessor = self._destination_model_accessor
-        check_is_list = self._check_is_list
-        children_accesses = self._children_accesses
+    def _get_model_mapper(self, orig_model, dest_model, mapper):
+        is_list = self._check_is_list(orig_model, dest_model)
+        model_mapper = UniformListModelMapper if is_list else ModelMapper
+        model_mapper = model_mapper(self._origin_model_accessor[orig_model],
+                                    self._destination_model_accessor[dest_model],
+                                    mapper)
+        self._children_accesses.add((model_mapper, orig_model, dest_model))
+        return model_mapper
 
+    def _prepare_mapper(self):
         for link_name, link_args in self._mapper_accessor.iteritems():
             if len(link_args) == 3:
-                is_list = check_is_list(link_args[0], link_args[1])
-                model_mapper_args = (orig_accessor[link_args[0]],
-                                     dest_accessor[link_args[1]],
-                                     link_args[2])
-                model_mapper = UniformListModelMapper if is_list else ModelMapper
-                model_mapper = model_mapper(*model_mapper_args)
-                children_accesses.add((model_mapper, link_args[0], link_args[1]))
-
-                yield link_name, model_mapper
+                yield link_name, self._get_model_mapper(*link_args)
 
     def prepare_mapper(self):
         model_mappers = self._prepare_mapper()
