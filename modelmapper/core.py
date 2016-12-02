@@ -1,7 +1,17 @@
-from collections import MutableMapping
+from collections import MutableMapping, namedtuple
+from copy import deepcopy
 
 from modelmapper.exceptions import ModelMapperError
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
+
+
+ModelMapperDeclaration = namedtuple('ModelMapperDeclaration', 'origin_access destination_access child_mapper')
+
+
+UniformListModelMapperDeclaration = namedtuple('ModelMapperDeclaration', ModelMapperDeclaration._fields + ('index',))
+
+
+ListModelMapperDeclaration = namedtuple('ModelMapperDeclaration', ModelMapperDeclaration._fields + ('autoresize',))
 
 
 class Mapper(object):
@@ -14,13 +24,23 @@ class Mapper(object):
         self._mapper = mapper
 
     @staticmethod
-    def factory(orig_model, dest_model, mapper):
+    def factory(orig_model, dest_model, mapper, *args):
         if isinstance(orig_model, list) and isinstance(dest_model, list):
-            return ListModelMapper(orig_model, dest_model, mapper)
+            return ListModelMapper(orig_model, dest_model, mapper, *args)
         elif isinstance(orig_model, list) or isinstance(dest_model, list):
-            return UniformListModelMapper(orig_model, dest_model, mapper)
+            return UniformListModelMapper(orig_model, dest_model, mapper, *args)
         else:
             return ModelMapper(orig_model, dest_model, mapper)
+
+    @staticmethod
+    def factory_by_declaration(type_declaration):
+        if isinstance(type_declaration, ListModelMapperDeclaration):
+            mapper = ListModelMapper
+        elif isinstance(type_declaration, UniformListModelMapperDeclaration):
+            mapper = UniformListModelMapper
+        else:
+            mapper = ModelMapper
+        return mapper(*type_declaration)
 
     @property
     def origin_model(self):
@@ -55,11 +75,19 @@ class ModelMapper(Mapper):
         for origin_access, _, mapper in self._children_accesses:
             mapper.set_origin_model(self._origin_model_accessor[origin_access])
 
-    def _get_new_model_mapper(self, orig_model, dest_model, mapper):
-        model_mapper = Mapper.factory(self._origin_model_accessor[orig_model],
-                                      self._destination_model_accessor[dest_model],
-                                      mapper)
-        self._children_accesses.add((orig_model, dest_model, model_mapper))
+    def _get_new_model_mapper(self, *args):
+        if len(args) == 1 and not isinstance(args[0], ModelMapper):
+            mapper_declaration = args[0]
+            model_mapper = Mapper.factory_by_declaration(mapper_declaration)
+            child = (mapper_declaration.origin_access, mapper_declaration.destination_access, model_mapper)
+        else:
+            orig_access, dest_access = args[0], args[1]
+            model_mapper = Mapper.factory(self._origin_model_accessor[orig_access],
+                                          self._destination_model_accessor[dest_access],
+                                          *args[2:])
+            child = (orig_access, dest_access, model_mapper)
+
+        self._children_accesses.add(child)
         return model_mapper
 
     def set_field_parent_accessor(self, orig_field, dest_field):
@@ -76,10 +104,13 @@ class ModelMapper(Mapper):
         get_new_model_mapper = self._get_new_model_mapper
 
         for link_name, link_args in self._mapper_accessor.iteritems():
-            if len(link_args) == 2:
+            args_length = len(link_args)
+            if args_length == 2:
                 set_field_parent_accessor(*link_args)
-            elif len(link_args) == 3:
+            elif args_length == 1 or args_length == 3:
                 yield link_name, get_new_model_mapper(*link_args)
+            else:
+                raise ModelMapperError("Bad number of arguments {} to declare a ModelMapper link".format(args_length))
 
     def prepare_mapper(self):
         mapper = self._mapper_accessor
@@ -123,16 +154,18 @@ class ListModelMapper(ModelMapper):
 
     LINK = '[{}].{}'
 
-    def __init__(self, origin_model, destination_model, mapper):
-        self._current_index = 0
+    def __init__(self, origin_model, destination_model, mapper, autoresize=False):
+        self.autoresize = autoresize
         super(ListModelMapper, self).__init__(origin_model, destination_model, mapper)
-
 
     def update_origin(self):
         dest_accessor = self._destination_model_accessor
         orig_accessor = self._origin_model_accessor
         model_list_range = range(len(self.destination_model))
         link = ListModelMapper.LINK.format
+
+        while self.autoresize and len(orig_accessor.model) < len(dest_accessor.model):
+            orig_accessor.model.append(deepcopy(orig_accessor.model[-1]))
 
         for _, link_value in self._mapper_accessor.iteritems():
             if isinstance(link_value, ModelMapper):
@@ -147,6 +180,9 @@ class ListModelMapper(ModelMapper):
         model_list_range = range(len(self.origin_model))
         link = ListModelMapper.LINK.format
 
+        while self.autoresize and len(orig_accessor.model) > len(dest_accessor.model):
+            dest_accessor.model.append(deepcopy(dest_accessor.model[-1]))
+
         for _, link_value in self._mapper_accessor.iteritems():
             if isinstance(link_value, ModelMapper):
                 link_value.update_destination()
@@ -160,29 +196,29 @@ class ListModelMapper(ModelMapper):
 
 class UniformListModelMapper(ModelMapper):
 
-    def __init__(self, origin_model, destination_model, mapper):
+    def __init__(self, origin_model, destination_model, mapper, index=0):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
 
         self._orig_data = origin_model
-        self._current_index = 0
+        self._index = index
         super(UniformListModelMapper, self).__init__(origin_model[0], destination_model, mapper)
 
     def set_origin_model(self, model):
         self._orig_data = model
-        self._origin_model = model[self._current_index]
+        self._origin_model = model[self._index]
         self._origin_model_accessor = ModelAccessor(self.origin_model)
 
         for mapper, origin_access, _ in self._children_accesses:
             mapper.origin_model = self._origin_model_accessor[origin_access]
 
     @property
-    def current_index(self):
-        return self._current_index
+    def index(self):
+        return self._index
 
-    @current_index.setter
-    def current_index(self, index):
+    @index.setter
+    def index(self, index):
         try:
-            self._current_index = index
+            self._index = index
             self._origin_model = self._orig_data[index]
             self._origin_model_accessor = ModelAccessor(self.origin_model)
             super(UniformListModelMapper, self).set_origin_model(self.origin_model)
