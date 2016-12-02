@@ -55,7 +55,7 @@ def get_children_obj():
     return Children()
 
 
-def get_model_data():
+def get_model_dict_data():
     return {
         'a': {'aa': {'aaa': 7}},
         'b': 5,
@@ -64,21 +64,42 @@ def get_model_data():
     }
 
 
+def get_model_list_data():
+    return [
+        {
+            'a': {'aa': {'aaa': 7}},
+            'b': 5,
+        },
+        {
+            'a': {'aa': {'aaa': 7}},
+            'b': 5,
+        },
+
+    ]
+
+
 class TestModelDataAccessor(unittest.TestCase):
 
     def setUp(self):
         self._children = get_children_obj()
-        self._model_data = get_model_data()
+        self._model_dict_data = get_model_dict_data()
+        self._model_list_data = get_model_list_data()
 
-        self._model_data_accessor = ModelAccessor(self._model_data)
+        self._model_dict_data_accessor = ModelAccessor(self._model_dict_data)
+        self._model_list_data_accessor = ModelAccessor(self._model_list_data)
         self._children_accessor = ModelAccessor(self._children)
 
+    def test_get_value_from_accessor_list(self):
+        self.assertEqual(self._model_list_data[0]['a']['aa']['aaa'], self._model_list_data_accessor['[0].a.aa.aaa'])
+        self.assertTrue(self._model_list_data_accessor.get('[0].a.aa.xbr') is None)
+        self.assertEqual(self._model_list_data[1]['b'], self._model_list_data_accessor['[1].b'])
+
     def test_get_value_from_accessor_dict(self):
-        self.assertEqual(self._model_data['a']['aa']['aaa'], self._model_data_accessor['a.aa.aaa'])
-        self.assertTrue(self._model_data_accessor.get('a.aa.xbr') is None)
-        self.assertEqual(self._model_data['b'], self._model_data_accessor['b'])
-        self.assertEqual(self._model_data['c'][1]['c1'], self._model_data_accessor['c[1].c1'])
-        self.assertEqual(self._model_data['c'][0], self._model_data_accessor['c[0]'])
+        self.assertEqual(self._model_dict_data['a']['aa']['aaa'], self._model_dict_data_accessor['a.aa.aaa'])
+        self.assertTrue(self._model_dict_data_accessor.get('a.aa.xbr') is None)
+        self.assertEqual(self._model_dict_data['b'], self._model_dict_data_accessor['b'])
+        self.assertEqual(self._model_dict_data['c'][1]['c1'], self._model_dict_data_accessor['c[1].c1'])
+        self.assertEqual(self._model_dict_data['c'][0], self._model_dict_data_accessor['c[0]'])
 
     @parameterized.expand([
         (exceptions.ModelAccessorKeyError, 'a.xx'),
@@ -87,7 +108,7 @@ class TestModelDataAccessor(unittest.TestCase):
     ])
     def test_get_value_from_accessor_dict_errors(self, e, name):
         with self.assertRaises(e):
-            self._model_data_accessor[name]
+            self._model_dict_data_accessor[name]
 
     @parameterized.expand([
         (exceptions.ModelAccessorIndexError, 'all[5]'),
@@ -104,15 +125,26 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertEqual(self._children.all[0].books['FB'], self._children_accessor['all[0].books.FB'])
 
     def test_set_value_from_accessor_dict(self):
-        self._model_data_accessor['a.aa.aaa'] = 10
-        self._model_data_accessor['a.bb'] = 15
-        self._model_data_accessor['b'] = 25
-        self._model_data_accessor['c'] = [1, 2, 3, 4]
+        self._model_list_data_accessor['[0].a.aa.aaa'] = 10
+        self._model_list_data_accessor['[0].a.bb'] = 15
+        self._model_list_data_accessor['[1].b'] = 25
+        self._model_list_data_accessor['[1].c'] = [1, 2, 3, 4]
 
-        self.assertEqual(self._model_data['a']['aa']['aaa'], 10)
-        self.assertEqual(self._model_data['a']['bb'], 15)
-        self.assertEqual(self._model_data['b'], 25)
-        self.assertEqual(self._model_data['c'], [1, 2, 3, 4])
+        self.assertEqual(self._model_list_data[0]['a']['aa']['aaa'], 10)
+        self.assertEqual(self._model_list_data[0]['a']['bb'], 15)
+        self.assertEqual(self._model_list_data[1]['b'], 25)
+        self.assertEqual(self._model_list_data[1]['c'], [1, 2, 3, 4])
+
+    def test_set_value_from_accessor_dict(self):
+        self._model_dict_data_accessor['a.aa.aaa'] = 10
+        self._model_dict_data_accessor['a.bb'] = 15
+        self._model_dict_data_accessor['b'] = 25
+        self._model_dict_data_accessor['c'] = [1, 2, 3, 4]
+
+        self.assertEqual(self._model_dict_data['a']['aa']['aaa'], 10)
+        self.assertEqual(self._model_dict_data['a']['bb'], 15)
+        self.assertEqual(self._model_dict_data['b'], 25)
+        self.assertEqual(self._model_dict_data['c'], [1, 2, 3, 4])
 
     def test_set_value_from_accessor_object(self):
         self._children_accessor['child_a.value'] = 10
@@ -124,11 +156,11 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertEqual(self._children.all[1].value, 25)
 
     def test_contain_value_in_dict(self):
-        self.assertTrue('a.aa.aaa' in self._model_data_accessor)
-        self.assertTrue('b' in self._model_data_accessor)
-        self.assertTrue('a.xx' not in self._model_data_accessor)
-        self.assertTrue('c[0].c1' in self._model_data_accessor)
-        self.assertTrue('c[3]' not in self._model_data_accessor)
+        self.assertTrue('a.aa.aaa' in self._model_dict_data_accessor)
+        self.assertTrue('b' in self._model_dict_data_accessor)
+        self.assertTrue('a.xx' not in self._model_dict_data_accessor)
+        self.assertTrue('c[0].c1' in self._model_dict_data_accessor)
+        self.assertTrue('c[3]' not in self._model_dict_data_accessor)
 
     def test_contain_value_in_object(self):
         self.assertTrue('child_a' in self._children_accessor)
@@ -137,32 +169,32 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertTrue('all[0].books.FB' in self._children_accessor)
 
     def test_special_character_list_in_simple_get_item(self):
-        self.assertEqual(self._model_data['c'], self._model_data_accessor['c[*]'])
+        self.assertEqual(self._model_dict_data['c'], self._model_dict_data_accessor['c[*]'])
 
     def test_special_character_list_in_complex_get_item(self):
         expected = []
-        for item in self._model_data['c']:
+        for item in self._model_dict_data['c']:
             expected.append(item['c1'])
-        self.assertEqual(expected, self._model_data_accessor['c[*].c1'])
+        self.assertEqual(expected, self._model_dict_data_accessor['c[*].c1'])
 
     def test_special_character_list_in_simple_set_item(self):
-        self._model_data_accessor['c[*]'] = [1, 2]
-        self.assertEqual(self._model_data['c'], [1, 2])
+        self._model_dict_data_accessor['c[*]'] = [1, 2]
+        self.assertEqual(self._model_dict_data['c'], [1, 2])
 
     def test_special_character_list_in_complex_set_item(self):
-        self._model_data_accessor['c[*].c1'] = 1
-        for item in self._model_data['c']:
+        self._model_dict_data_accessor['c[*].c1'] = 1
+        for item in self._model_dict_data['c']:
             self.assertEqual(item['c1'], 1)
 
 
 class TestPerformanceModelAccessor(unittest.TestCase):
 
     def setUp(self):
+        dict_var_name = 'more_longer_name'
         self._num_recursion = 256
-        self._dict_var_name = 'more_longer_name'
-        self._model_data = json.loads(''.join(self._create_massive_model()))
-        self._model_accessor = ModelAccessor(self._model_data)
-        self._item_access = '.'.join([self._dict_var_name for _ in range(self._num_recursion)])
+        data = TestPerformanceModelAccessor.create_massive_model(dict_var_name, self._num_recursion)
+        self._model_accessor = ModelAccessor(data)
+        self._item_access = '.'.join([dict_var_name] * self._num_recursion)
 
     def test_performance_in_get_item(self):
         for _ in range(5):
@@ -173,10 +205,9 @@ class TestPerformanceModelAccessor(unittest.TestCase):
             self._model_accessor[self._item_access] = 8
         self.assertEqual(self._model_accessor[self._item_access], 8)
 
-    def _create_massive_model(self):
-        data = []
-        for i in range(self._num_recursion):
-            data.append('{{"{}": '.format(self._dict_var_name))
-        data.append("{}".format(self._num_recursion))
-        data.append("}" * self._num_recursion )
-        return data
+    @staticmethod
+    def create_massive_model(dict_var_name, num_recursion):
+        data = ['{{"{}": '.format(dict_var_name)] * num_recursion
+        data.append("{}".format(num_recursion))
+        data.append("}" * num_recursion )
+        return json.loads(''.join(data))

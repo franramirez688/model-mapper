@@ -39,7 +39,6 @@ class ModelAccessor(object):
         :param model: dictionary or a simple object
         """
         self._model = model
-        self._visited_objects = None
 
     @property
     def model(self):
@@ -115,12 +114,6 @@ class ModelAccessor(object):
             return False
         else:
             return True
-
-
-class ModelContainer(object):
-
-        def __init__(self):
-            self._cached_objects = None
 
 
 class SpecialListAccessor(object):

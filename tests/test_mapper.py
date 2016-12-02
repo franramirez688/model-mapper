@@ -7,7 +7,17 @@ from modelmapper.accessors import FieldAccessor
 
 
 class A(object):
-    val_a = None
+
+    def __init__(self, **kwargs):
+        self.set_all(**kwargs)
+
+    def set_all(self, a=None, aa=None, aaa=None):
+        self.val_a = a
+        self.val_aa = aa
+        self.val_aaa = aaa
+
+    def get_all(self):
+        return {'a': self.val_a, 'aa': self.val_aa, 'aaa': self.val_aaa}
 
 
 class B(object):
@@ -38,6 +48,9 @@ class D(object):
     val_ddd = A()
     val_dddd = None
     val_complex = Complex()
+    val_list = [A(),
+                A(),
+                A()]
 
 
 def get_origin_model():
@@ -76,7 +89,12 @@ def get_origin_model():
             'a': 1
         },
         'dddd': 1,
-        'complex': "fake1"
+        'complex': "fake1",
+        'd_list': [
+            {'a': 1, 'aa': [1, 2], 'aaa': "fake aaa 1"},
+            {'a': 2, 'aa': [2, 3], 'aaa': "fake aaa 2"},
+            {'a': 3, 'aa': [4, 5], 'aaa': "fake aaa 3"}
+        ]
     }
 
 
@@ -99,22 +117,31 @@ def get_child_x_mapper(x):
     }
 
 
+def get_d_list_mapper():
+    return {
+        'a_link': ('a', 'val_a'),
+        'aa_link': ('aa', 'val_aa'),
+        'aaa_link': ('aaa', 'val_aaa')
+    }
+
+
 def get_d_mapper():
     return {
         'c_0_link': ('c[0]', 'val_c[0]', get_child_x_mapper('a')),
         'c_1_link': ('c[1]', 'val_c[1]', get_child_x_mapper('b')),
         'cc_link': ('cc', 'val_cc'),
-        'ccc_link': ('ccc[*]', 'val_ccc', get_child_x_mapper('a'))
+        'ccc_link': ('ccc', 'val_ccc', get_child_x_mapper('a'))  # UniformList
     }
 
 
 def get_model_mapper():
     return {
-        'd_link': ('d[*]', 'val_d', get_d_mapper()),
+        'd_link': ('d', 'val_d', get_d_mapper()),  # UniformList
         'dd_link': ('dd.b', 'val_dd.val_b'),
         'ddd_link': ('ddd.a', 'val_ddd.val_a'),
         'dddd_link': ('dddd', 'val_dddd'),
-        'complex_link': ('complex', ComplexAccessor('val_complex'))
+        'complex_link': ('complex', ComplexAccessor('val_complex')),
+        'list_link': ('d_list', 'val_list', get_d_list_mapper())
     }
 
 
@@ -124,8 +151,8 @@ class TestModelMapper(unittest.TestCase):
         self._origin_model = get_origin_model()
         self._destination_model = get_destination_model()
         self._mapper = get_model_mapper()
-        self._model_mapper = ModelMapper(self._origin_model, self._destination_model, self._mapper)
 
+        self._model_mapper = ModelMapper(self._origin_model, self._destination_model, self._mapper)
         self._model_mapper.prepare_mapper()
 
     def test_destination_loads_data_from_origin(self):
@@ -165,6 +192,9 @@ class TestModelMapper(unittest.TestCase):
         self._destination_model.val_ddd.val_a = "New test val_ddd.val_a"
         self._destination_model.val_dddd = "New test val_dddd"
         self._destination_model.val_complex.set_val("New test val_complex")
+        self._destination_model.val_list[0] = A(**{'a': 4, 'aa': [], 'aaa': "1"})
+        self._destination_model.val_list[1] = A(**{'a': 5, 'aa': [1], 'aaa': "2"})
+        self._destination_model.val_list[2] = A(**{'a': 6, 'aa': [1, 2], 'aaa': "3"})
 
     def _assert_all(self):
         self._assert_root_basic_values()
@@ -176,11 +206,18 @@ class TestModelMapper(unittest.TestCase):
         self._assert_parent_uniform_model_list_values(d_link_index=1, assert_equal=False)
         self._assert_child_uniform_model_list_values(d_link_index=1, ccc_link_index=0, assert_equal=False)
         self._assert_child_uniform_model_list_values(d_link_index=1, ccc_link_index=1, assert_equal=False)
+        self._assert_model_list_values()
+
+    def _assert_model_list_values(self, assert_equal=True):
+        assert_ = self._get_assert(assert_equal)
+
+        for i, orig_item in enumerate(self._origin_model['d_list']):
+            assert_(orig_item, self._destination_model.val_list[i].get_all())
 
     def _assert_parent_uniform_model_list_values(self, d_link_index=0, assert_equal=True):
         orig_parent = self._origin_model['d'][d_link_index]
         dest_parent = self._destination_model.val_d
-        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
+        assert_ = self._get_assert(assert_equal)
 
         assert_(orig_parent['c'][0]['a'], dest_parent.val_c[0].val_a)
         assert_(orig_parent['c'][1]['b'], dest_parent.val_c[1].val_b)
@@ -189,14 +226,17 @@ class TestModelMapper(unittest.TestCase):
     def _assert_child_uniform_model_list_values(self, d_link_index=0, ccc_link_index=0, assert_equal=True):
         orig_parent = self._origin_model['d'][d_link_index]
         dest_parent = self._destination_model.val_d
-        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
+        assert_ = self._get_assert(assert_equal)
 
         assert_(orig_parent['ccc'][ccc_link_index]['a'], dest_parent.val_ccc.val_a)
 
     def _assert_root_basic_values(self, assert_equal=True):
-        assert_ = self.assertEqual if assert_equal else self.assertNotEqual
+        assert_ = self._get_assert(assert_equal)
 
         assert_(self._origin_model['dd']['b'], self._destination_model.val_dd.val_b)
         assert_(self._origin_model['ddd']['a'], self._destination_model.val_ddd.val_a)
         assert_(self._origin_model['dddd'], self._destination_model.val_dddd)
         assert_(self._origin_model['complex'], self._destination_model.val_complex.get_val())
+
+    def _get_assert(self, equal=True):
+        return self.assertEqual if equal else self.assertNotEqual

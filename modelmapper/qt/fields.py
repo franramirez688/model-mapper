@@ -1,7 +1,8 @@
 from modelmapper.accessors import FieldAccessor
+from modelmapper.exceptions import FieldAccessorError
 
 
-class WidgetAccessor(FieldAccessor):
+class QWidgetAccessor(FieldAccessor):
 
     @property
     def widget(self):
@@ -12,3 +13,12 @@ class WidgetAccessor(FieldAccessor):
 
     def set_value(self, value):
         self.widget.metaObject().userProperty().write(self.widget, value)
+
+
+class QLineEditAccessor(QWidgetAccessor):
+
+    def get_value(self):
+        return self.widget.text()
+
+    def set_value(self, value):
+        self.widget.setText(value)
