@@ -13,13 +13,17 @@ class A(object):
 
 
 class B(object):
-    val_b = None
+
+    def __init__(self):
+        self.val_b = None
 
 
 class C(object):
-    val_c = [A(), B()]
-    val_cc = None
-    val_ccc = A()
+
+    def __init__(self):
+        self.val_c = [A(), B()]
+        self.val_cc = None
+        self.val_ccc = A()
 
 
 class Complex(object):
@@ -35,16 +39,14 @@ class Complex(object):
 
 
 class D(object):
-    val_d = C()
-    val_dd = B()
-    val_ddd = A()
-    val_dddd = None
-    val_complex = Complex()
-    val_list = [
-        A(),
-        A(),
-        A()
-    ]
+
+    def __init__(self):
+        self.val_d = C()
+        self.val_dd = B()
+        self.val_ddd = A()
+        self.val_dddd = None
+        self.val_complex = Complex()
+        self.val_list = [A()]
 
 
 def get_destination_model():

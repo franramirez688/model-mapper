@@ -51,10 +51,3 @@ def get_model_mapper():
         'complex_link': ('complex', ComplexAccessor('val_complex')),
         'list_link': ('d_list', 'val_list', get_d_list_mapper())
     }
-
-
-def get_list_model_mapper():
-    return {
-        'list_link': ('d_list', 'val_list', get_d_list_mapper())
-    }
-
