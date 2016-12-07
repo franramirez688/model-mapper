@@ -67,3 +67,44 @@ class MemoryListAccessor(QWidgetAccessor):
         for detail_name in self.details:
             detail = self._get_detail(detail_name)
             self._set_detail(detail_name, {detail.source: []} if detail.source else [])
+
+
+class String(QLineEditAccessor):
+
+    def get_value(self):
+        value = super(String, self).get_value()
+        return value if value else None
+
+    def set_value(self, value):
+        super(String, self).set_value(value if value is not None else '')
+
+
+class Autocomplete(QLineEditAccessor):
+
+    def get_value(self):
+        value = self.widget.value
+        return value if value else None
+
+    def set_value(self, value):
+        self.widget.value = value if value is not None else ''
+
+    def reset(self):
+        self.widget.clear()
+
+
+class Operador(Autocomplete):
+
+    def __init__(self, accesss, pk=u'id', text=u'nombre'):
+        self._pk = pk
+        self._text = text
+        super(Operador, self).__init__(accesss)
+
+    def get_value(self):
+        value = self.widget.value
+        if value and isinstance(value, dict) and value.get(self._text):
+            return value[self._pk]
+        return value
+
+    def set_value(self, value):
+        if value and value.get(self._text):
+            super(Operador, self).set_value(value)
