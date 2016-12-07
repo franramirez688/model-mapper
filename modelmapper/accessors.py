@@ -164,7 +164,10 @@ class FieldAccessor(object):
 
     @property
     def field(self):
-        return self._parent_accessor[self.access]
+        try:
+            return self._parent_accessor[self.access]
+        except Exception as e:
+            raise exceptions.FieldAccessorError(str(e))
 
     @property
     def parent_accessor(self):
