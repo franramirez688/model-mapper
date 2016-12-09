@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from modelmapper import compat
 from modelmapper.accessors import FieldAccessor
 from modelmapper.exceptions import FieldAccessorError
 
@@ -92,19 +95,39 @@ class Autocomplete(QLineEditAccessor):
         self.widget.clear()
 
 
-class Operador(Autocomplete):
+class LineDate(QLineEditAccessor):
 
-    def __init__(self, accesss, pk=u'id', text=u'nombre'):
-        self._pk = pk
-        self._text = text
-        super(Operador, self).__init__(accesss)
-
-    def get_value(self):
-        value = self.widget.value
-        if value and isinstance(value, dict) and value.get(self._text):
-            return value[self._pk]
-        return value
+    def __init__(self, access, from_format='%Y-%m-%dT%H:%M:%S'):
+        self.from_format = from_format
+        super(LineDate, self).__init__(access)
 
     def set_value(self, value):
-        if value and value.get(self._text):
-            super(Operador, self).set_value(value)
+        if value and isinstance(value, compat.basestring):
+            super(LineDate, self).set_value(datetime.strptime(value, self.from_format))
+
+
+class CheckBoxList(QWidgetAccessor):
+
+    def get_value(self):
+        return [item.text() for _, item in self.widget.checkedItems()]
+
+    def set_value(self, value):
+        pass
+
+
+# class Operador(Autocomplete):
+#
+#     def __init__(self, accesss, pk=u'id', text=u'nombre'):
+#         self._pk = pk
+#         self._text = text
+#         super(Operador, self).__init__(accesss)
+#
+#     def get_value(self):
+#         value = self.widget.value
+#         if value and isinstance(value, dict) and value.get(self._text):
+#             return value[self._pk]
+#         return value
+#
+#     def set_value(self, value):
+#         if value and value.get(self._text):
+#             super(Operador, self).set_value(value)
