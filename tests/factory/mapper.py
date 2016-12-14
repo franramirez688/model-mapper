@@ -10,9 +10,9 @@ from tests.factory.mapper_data import get_model_mapper
 class ModelMapperFactoryTest(unittest.TestCase):
 
     def setUp(self, orig_model=None, dest_model=None, mapper=None):
-        self._origin_model = orig_model or get_origin_model()
-        self._destination_model = dest_model or get_destination_model()
-        self._mapper = mapper or get_model_mapper()
+        self._origin_model = get_origin_model() if orig_model is None else orig_model
+        self._destination_model = get_destination_model() if dest_model is None else dest_model
+        self._mapper = get_model_mapper() if mapper is None else mapper
 
         self._model_mapper = ModelMapper(self._origin_model, self._destination_model, self._mapper)
         self._model_mapper.prepare_mapper()
@@ -77,3 +77,70 @@ class ModelMapperFactoryTest(unittest.TestCase):
 
     def _get_assert(self, equal=True):
         return self.assertEqual if equal else self.assertNotEqual
+
+    def get_dict_data(self, only_origin=False, only_destination=False):
+        expected_data = {
+            'complex_link': ('fake1', 'New test val_complex'),
+            'd_link': ([{'c_0_link': {'a_link': 1},
+                         'c_1_link': {'b_link': 2},
+                         'cc_link': 'fake 1',
+                         'ccc_link': [{'a_link': 1}, {'a_link': 2}]},
+                        {'c_0_link': {'a_link': 3},
+                         'c_1_link': {'b_link': 4},
+                         'cc_link': 'fake 2',
+                         'ccc_link': [{'a_link': 3}, {'a_link': 4}]}],
+                    {'c_0_link': {'a_link': 'New test val_d.val_c[0].val_a'},
+                     'c_1_link': {'b_link': 'New test val_d.val_c[1].val_b'},
+                     'cc_link': 'New test val_d.val_cc',
+                     'ccc_link': {'a_link': 'New test val_d.val_ccc.val_a'}}),
+            'dd_link': ({'new_val_1': 'fake1', 'new_val_2': 'fake2'},
+                         'New test val_dd.val_b'),
+            'ddd_link': (1, 'New test val_ddd.val_a'),
+            'dddd_link': (1, 'New test val_dddd'),
+            'list_link': ([{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
+                           {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}],
+                          [{'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
+                           {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
+                           {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
+                           {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}])}
+
+        expected_only_origin_data = {
+            'complex_link': 'fake1',
+            'd_link': [
+                {'c_0_link': {'a_link': 1},
+                 'c_1_link': {'b_link': 2},
+                 'cc_link': 'fake 1',
+                 'ccc_link': [{'a_link': 1}, {'a_link': 2}]},
+                {'c_0_link': {'a_link': 3},
+                 'c_1_link': {'b_link': 4},
+                 'cc_link': 'fake 2',
+                 'ccc_link': [{'a_link': 3}, {'a_link': 4}]}],
+            'dd_link': {'new_val_1': 'fake1', 'new_val_2': 'fake2'},
+            'ddd_link': 1,
+            'dddd_link': 1,
+            'list_link': [{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
+                          {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}]}
+
+        expected_only_destination_data = {
+            'complex_link': 'New test val_complex',
+            'd_link': {
+                    'c_0_link': {'a_link': 'New test val_d.val_c[0].val_a'},
+                    'c_1_link': {'b_link': 'New test val_d.val_c[1].val_b'},
+                    'cc_link': 'New test val_d.val_cc',
+                    'ccc_link': {'a_link': 'New test val_d.val_ccc.val_a'}
+            },
+            'dd_link': 'New test val_dd.val_b',
+            'ddd_link': 'New test val_ddd.val_a',
+            'dddd_link': 'New test val_dddd',
+            'list_link': [
+                {'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
+                {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
+                {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
+                {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}]}
+
+        if only_destination:
+            return expected_only_destination_data
+        elif only_origin:
+            return expected_only_origin_data
+        else:
+            return expected_data

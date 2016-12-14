@@ -40,3 +40,14 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
 
         with self.assertRaises(ModelAccessorIndexError):
             self._model_mapper.origin_to_destination()
+
+    def test_to_dict_data(self):
+        self.update_destination_values()
+        self.assertEqual(self.get_dict_data(), self._model_mapper.to_dict())
+
+    def test_to_dict_only_origin_data(self):
+        self.assertEqual(self.get_dict_data(only_origin=True), self._model_mapper.to_dict(only_origin=True))
+
+    def test_to_dict_only_destination_data(self):
+        self.update_destination_values()
+        self.assertEqual(self.get_dict_data(only_destination=True), self._model_mapper.to_dict(only_destination=True))
