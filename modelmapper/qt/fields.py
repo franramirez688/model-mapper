@@ -105,6 +105,10 @@ class LineDate(QLineEditAccessor):
         if value and isinstance(value, compat.basestring):
             super(LineDate, self).set_value(datetime.strptime(value, self.from_format))
 
+    def get_value(self):
+        value = super(LineDate, self).get_value()
+        return datetime.strptime(value, '%d-%m-%Y') if value and value != 'dd-mm-aaaa' else None
+
 
 class CheckBoxList(QWidgetAccessor):
 
@@ -113,21 +117,3 @@ class CheckBoxList(QWidgetAccessor):
 
     def set_value(self, value):
         pass
-
-
-# class Operador(Autocomplete):
-#
-#     def __init__(self, accesss, pk=u'id', text=u'nombre'):
-#         self._pk = pk
-#         self._text = text
-#         super(Operador, self).__init__(accesss)
-#
-#     def get_value(self):
-#         value = self.widget.value
-#         if value and isinstance(value, dict) and value.get(self._text):
-#             return value[self._pk]
-#         return value
-#
-#     def set_value(self, value):
-#         if value and value.get(self._text):
-#             super(Operador, self).set_value(value)
