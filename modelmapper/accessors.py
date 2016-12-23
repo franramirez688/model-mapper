@@ -94,18 +94,17 @@ class ModelAccessor(object):
             return item.get_value()
         elif self.SPECIAL_LIST_INDICATOR in item:
             return SpecialListAccessor.get_item(self, item)
-        return self._get_item_value(item)
+        else:
+            return self._get_item_value(item)
 
     def __setitem__(self, item, value):
         if isinstance(item, FieldAccessor):
             item.set_value(value)
-            return
         elif self.SPECIAL_LIST_INDICATOR in item:
             SpecialListAccessor.set_item(self, item, value)
-            return
-
-        root_obj, attr = self._get_root_obj_and_attr(item)
-        self._set_item(root_obj, attr, value)
+        else:
+            root_obj, attr = self._get_root_obj_and_attr(item)
+            self._set_item(root_obj, attr, value)
 
     def __contains__(self, item):
         try:

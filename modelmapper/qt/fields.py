@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from datetime import datetime
 
 from modelmapper import compat
@@ -29,12 +31,16 @@ class QLineEditAccessor(QWidgetAccessor):
 
 class MemoryListAccessor(QWidgetAccessor):
 
+
     def __init__(self, access, details=None):
         super(MemoryListAccessor, self).__init__(access)
 
         self.details = details
+        self.signals_activated = False
 
-        if self.details:
+    def try_connect_signals(self):
+        if self.details and not self.signals_activated:
+            self.signals_activated = True
             self.widget.clicked.connect(self.on_activated)
 
     def on_activated(self, index):
@@ -46,22 +52,24 @@ class MemoryListAccessor(QWidgetAccessor):
             self._clear_details()
 
     def get_value(self):
+        self.try_connect_signals()
         return [row[1] for row in self.widget.model().get_objects()]
 
     def set_value(self, value):
+        self.try_connect_signals()
         self.widget.model().set_source(value)
 
     def _propagate_activation(self, widget):
-        widget.clicked.emit(widget.model()._index(0, 0))
+        self.widget.clicked.emit(self.widget.model()._index(0, 0))
 
     def _set_detail(self, detail_name, value):
         detail = self._get_detail(detail_name)
-        detail.setter(value)
+        detail.set_value(value)
         self._propagate_activation(detail.widget)
 
     def _get_detail(self, detail_name):
-        if detail_name in self.form.fields:
-            return self.form.fields[detail_name]
+        if detail_name in self.parent_accessor:
+            return self.parent_accessor[detail_name]
 
         raise FieldAccessorError(u'El campo {} definido en details no existe en el formulario'.
                                  format(detail_name))
@@ -76,7 +84,7 @@ class String(QLineEditAccessor):
 
     def get_value(self):
         value = super(String, self).get_value()
-        return value if value else None
+        return value or None
 
     def set_value(self, value):
         super(String, self).set_value(value if value is not None else '')
@@ -86,7 +94,7 @@ class Autocomplete(QLineEditAccessor):
 
     def get_value(self):
         value = self.widget.value
-        return value if value else None
+        return value or None
 
     def set_value(self, value):
         self.widget.value = value if value is not None else ''
@@ -117,3 +125,42 @@ class CheckBoxList(QWidgetAccessor):
 
     def set_value(self, value):
         pass
+
+
+class SpinBox(QWidgetAccessor):
+
+    def get_value(self):
+        return self.widget.value()
+
+    def set_value(self, value):
+        if value is None:
+            self.widget.clear()
+        self.widget.setValue(str(value) or '')
+
+
+class Integer(QLineEditAccessor):
+
+    def get_value(self):
+        value = super(Integer, self).get_value()
+        return int(value) if value else None
+
+    def set_value(self, value):
+        super(Integer, self).set_value(value if value else '')
+
+
+class ReadOnlyAccessor(FieldAccessor):
+
+    def set_value(self, value):
+        pass
+
+    def get_value(self):
+        return self._parent_accessor[self.access]
+
+
+class PlainTextEdit(QWidgetAccessor):
+
+    def set_value(self, value):
+        self.widget.setPlainText(value if value is not None else '')
+
+    def get_value(self):
+        return self.widget.plainText or None

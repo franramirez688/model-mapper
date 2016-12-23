@@ -1,20 +1,33 @@
-from collections import MutableMapping
+from collections import MutableMapping, namedtuple
 from copy import deepcopy
 
 from modelmapper.exceptions import ModelMapperError
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
 
 
+MapperDeclaration = namedtuple('MapperDeclaration', 'origin_model destination_model mapper '
+                                                    'origin_entity_model destination_entity_model')
+
+
+ListMapperDeclaration = namedtuple('ListMapperDeclaration', MapperDeclaration._fields + 'autoresize')
+
+
+UniformMapperDeclaration = namedtuple('ListMapperDeclaration', MapperDeclaration._fields + 'index')
+
+
 class ModelMapper(object):
     """Linker class between an origin model and a destination one
     """
 
-    def __init__(self, origin_model, destination_model, mapper):
+    def __init__(self, origin_model, destination_model, mapper, origin_entity_model=None, destination_entity_model=None):
         assert isinstance(mapper, MutableMapping), "Mapper must be a mutable mapping (dict, OrderedDict, etc)"
 
         self._origin_model = origin_model
         self._destination_model = destination_model
         self._mapper = mapper
+
+        self._origin_entity_model = origin_entity_model
+        self._destination_entity_model = destination_entity_model
 
         self._mapper_accessor = ModelDictAccessor(mapper)
         self._origin_accessor = ModelAccessor(origin_model)
@@ -59,6 +72,22 @@ class ModelMapper(object):
         self._mapper_accessor = ModelDictAccessor(val)
 
     @property
+    def origin_entity_model(self):
+        return self._origin_entity_model
+
+    @origin_entity_model.setter
+    def origin_entity_model(self, val):
+        self._origin_entity_model = val
+
+    @property
+    def destination_entity_model(self):
+        return self._destination_entity_model
+
+    @destination_entity_model.setter
+    def destination_entity_model(self, val):
+        self._destination_entity_model = val
+
+    @property
     def origin_accessor(self):
         return self._origin_accessor
 
@@ -80,8 +109,8 @@ class ModelMapper(object):
     def _get_new_model_mapper(self, *args):
         orig_access, dest_access = args[0], args[1]
         model_mapper = ModelMapper.factory(self._origin_accessor[orig_access],
-                                       self._destination_accessor[dest_access],
-                                       *args[2:])
+                                           self._destination_accessor[dest_access],
+                                           *args[2:])
         child = (orig_access, dest_access, model_mapper)
 
         self._children_accesses.add(child)
@@ -164,9 +193,11 @@ class ListModelMapper(ModelMapper):
 
     LINK = '[{}].{}'
 
-    def __init__(self, origin_model, destination_model, mapper, autoresize=True):
+    def __init__(self, origin_model, destination_model, mapper, origin_entity_model=None, destination_entity_model=None,
+                 autoresize=True):
         self.autoresize = autoresize
-        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper)
+        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper,
+                                              origin_entity_model, destination_entity_model)
 
     def destination_to_origin(self):
         dest_accessor = self._destination_accessor
@@ -242,12 +273,15 @@ class ListModelMapper(ModelMapper):
 
 class UniformListModelMapper(ModelMapper):
 
-    def __init__(self, origin_model, destination_model, mapper, index=0):
+    def __init__(self, origin_model, destination_model, mapper, origin_entity_model=None, destination_entity_model=None,
+                 index=0):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
 
         self._orig_data = origin_model
         self._index = index
-        super(UniformListModelMapper, self).__init__(origin_model[index], destination_model, mapper)
+        origin_model = origin_model[index] if len(origin_model) > 0 else None
+        super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper,
+                                                     origin_entity_model, destination_entity_model)
 
     def set_origin_model(self, model):
         self._orig_data = model
