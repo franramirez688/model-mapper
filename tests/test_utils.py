@@ -124,7 +124,7 @@ class TestModelDataAccessor(unittest.TestCase):
         self.assertEqual(self._children.all[0].text, self._children_accessor['all[0].text'])
         self.assertEqual(self._children.all[0].books['FB'], self._children_accessor['all[0].books.FB'])
 
-    def test_set_value_from_accessor_dict(self):
+    def test_set_value_from_list_of_accessor_dict(self):
         self._model_list_data_accessor['[0].a.aa.aaa'] = 10
         self._model_list_data_accessor['[0].a.bb'] = 15
         self._model_list_data_accessor['[1].b'] = 25
@@ -137,11 +137,13 @@ class TestModelDataAccessor(unittest.TestCase):
 
     def test_set_value_from_accessor_dict(self):
         self._model_dict_data_accessor['a.aa.aaa'] = 10
+        self._model_dict_data_accessor['a.aa.bbb'] = 10  # create a new one
         self._model_dict_data_accessor['a.bb'] = 15
         self._model_dict_data_accessor['b'] = 25
         self._model_dict_data_accessor['c'] = [1, 2, 3, 4]
 
         self.assertEqual(self._model_dict_data['a']['aa']['aaa'], 10)
+        self.assertEqual(self._model_dict_data['a']['aa']['bbb'], 10)
         self.assertEqual(self._model_dict_data['a']['bb'], 15)
         self.assertEqual(self._model_dict_data['b'], 25)
         self.assertEqual(self._model_dict_data['c'], [1, 2, 3, 4])

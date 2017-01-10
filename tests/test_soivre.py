@@ -45,33 +45,6 @@ def get_origin_data():
             'dest_country_code': None, 'soivre_number': None, 'obsv': None, 'imex_code': None, 'transport_code': None}
 
 
-# MAPPER
-def get_envios_mapper():
-    sends_mapper = OrderedDict()
-    sends_mapper['sends'] = ('sends', MemoryListAccessor('sends.sends'))
-    sends_mapper['lines_sends'] = ('sends[*].lines', MemoryListAccessor('sends.lines_sends'))
-    sends_mapper['lines_errors'] = ('sends[*].lines[*].errors', MemoryListAccessor('sends.lines_errors'))
-    return sends_mapper
-
-
-def get_respuestas_mapper():
-    responses_mapper = OrderedDict()
-    responses_mapper['information'] = ('response_cert', MemoryListAccessor('information'))
-    responses_mapper['oper_information'] = ('response_cert.oper_information', MemoryListAccessor('oper_information'))
-    responses_mapper['certificate_detail'] = ('response_cert.certificate', MemoryListAccessor('certificate'))
-    responses_mapper['certificate_line'] = ('response_cert.certificate.lines', MemoryListAccessor('certificate_line'))
-    return responses_mapper
-
-
-def get_frutas_mapper():
-    mapper = OrderedDict()
-    mapper.update(get_envios_mapper())
-    mapper.update(get_respuestas_mapper())
-    mapper['lines'] = ('lines', 'lines', get_frutas_lineas_mapper())
-    mapper['resumen'] = (ReadOnlyAccessor('lines'), MemoryListAccessor('resumen.resumen_mercancias'))
-    return mapper
-
-
 # DESTINATION
 class Model(object):
     def __init__(self, objects):
@@ -139,6 +112,33 @@ class Soivre(object):
         self.sends = SendSoivre()
         self.lines = LineSoivre()
         self.resumen = ResumenSoivre()
+
+
+# MAPPER
+def get_envios_mapper():
+    sends_mapper = OrderedDict()
+    sends_mapper['sends'] = ('sends', MemoryListAccessor('sends.sends'))
+    sends_mapper['lines_sends'] = ('sends[*].lines', MemoryListAccessor('sends.lines_sends'))
+    sends_mapper['lines_errors'] = ('sends[*].lines[*].errors', MemoryListAccessor('sends.lines_errors'))
+    return sends_mapper
+
+
+def get_respuestas_mapper():
+    responses_mapper = OrderedDict()
+    responses_mapper['information'] = ('response_cert', MemoryListAccessor('information'))
+    responses_mapper['oper_information'] = ('response_cert.oper_information', MemoryListAccessor('oper_information'))
+    responses_mapper['certificate_detail'] = ('response_cert.certificate', MemoryListAccessor('certificate'))
+    responses_mapper['certificate_line'] = ('response_cert.certificate.lines', MemoryListAccessor('certificate_line'))
+    return responses_mapper
+
+
+def get_frutas_mapper():
+    mapper = OrderedDict()
+    mapper.update(get_envios_mapper())
+    mapper.update(get_respuestas_mapper())
+    mapper['lines'] = ('lines', 'lines', get_frutas_lineas_mapper())
+    mapper['resumen'] = (ReadOnlyAccessor('lines'), MemoryListAccessor('resumen.resumen_mercancias'))
+    return mapper
 
 
 class ModelMapperFactoryTest(unittest.TestCase):

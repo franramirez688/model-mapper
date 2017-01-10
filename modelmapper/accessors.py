@@ -1,5 +1,6 @@
 import re
 from abc import ABCMeta
+from functools import wraps
 
 import six
 
@@ -7,12 +8,13 @@ from modelmapper import exceptions
 from modelmapper.compat import filter
 
 
-def handle_exceptions(get_or_set):
+def handle_exceptions(f):
+
     def handle(*args, **kwargs):
         root = args[1]
         attr = args[2]
         try:
-            return get_or_set(*args, **kwargs)
+            return f(*args, **kwargs)
         except AttributeError:
             raise exceptions.ModelAccessorAttributeError(
                 "{root} has not the attribute {attr}".format(root=root, attr=attr))
@@ -47,7 +49,7 @@ class ModelAccessor(object):
     @staticmethod
     def split(name, pattern=None, **kwargs):
         pattern = re.compile(pattern) if pattern else ModelAccessor.SPLIT_ACCESSOR_REGEX
-        return list(filter(None, pattern.split(name, **kwargs)))  # delete empty strings
+        return filter(None, pattern.split(name, **kwargs))  # delete empty strings
 
     def get(self, name, default=None):
         try:
@@ -81,16 +83,17 @@ class ModelAccessor(object):
         return target_item
 
     def _get_item_value(self, item):
-        split_item = item if isinstance(item, list) else self.split(item)
+        split_item = item if isinstance(item, list) else list(ModelAccessor.split(item))
         return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
 
     def _get_root_obj_and_attr(self, item):
-        split_item = item if isinstance(item, list) else self.split(item)
+        split_item = item if isinstance(item, list) else list(ModelAccessor.split(item))
         root_obj = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
         return root_obj, split_item[-1]
 
     def __getitem__(self, item):
         if isinstance(item, FieldAccessor):
+            item.parent_accessor = self
             return item.get_value()
         elif self.SPECIAL_LIST_INDICATOR in item:
             return SpecialListAccessor.get_item(self, item)
@@ -99,6 +102,7 @@ class ModelAccessor(object):
 
     def __setitem__(self, item, value):
         if isinstance(item, FieldAccessor):
+            item.parent_accessor = self
             item.set_value(value)
         elif self.SPECIAL_LIST_INDICATOR in item:
             SpecialListAccessor.set_item(self, item, value)
@@ -121,7 +125,9 @@ class SpecialListAccessor(object):
 
     @staticmethod
     def split_list_items(item):
-        special_list_item = ModelAccessor.split(item, pattern=SpecialListAccessor.SPLIT_ACCESSOR_REGEX, maxsplit=1)
+        special_list_item = list(ModelAccessor.split(item,
+                                                     pattern=SpecialListAccessor.SPLIT_ACCESSOR_REGEX,
+                                                     maxsplit=1))
         return special_list_item[0], special_list_item[1] if len(special_list_item) > 1 else None
 
     @staticmethod
