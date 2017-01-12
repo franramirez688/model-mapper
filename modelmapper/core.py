@@ -1,9 +1,19 @@
-from collections import MutableMapping, namedtuple
-from copy import deepcopy
-from functools import wraps
+from collections import namedtuple
 
 from modelmapper import exceptions
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor
+
+
+FieldDeclaration = namedtuple('FieldDeclaration', 'origin_access destination_access')
+
+
+ModelMapperDeclaration = namedtuple('MapperDeclaration', FieldDeclaration._fields + ('mapper',))
+
+
+ListMapperDeclaration = namedtuple('ListMapperDeclaration', ModelMapperDeclaration._fields)
+
+
+UniformMapperDeclaration = namedtuple('UniformMapperDeclaration', ModelMapperDeclaration._fields)
 
 
 class ModelMapper(object):
@@ -11,17 +21,16 @@ class ModelMapper(object):
     """
 
     def __init__(self, origin_model, destination_model, mapper):
-        assert isinstance(mapper, MutableMapping), "Mapper must be a mutable mapping (dict, OrderedDict, etc)"
-
-        self._origin_model = origin_model
+        self._origin_model = origin_model if origin_model is None else dict()
         self._destination_model = destination_model
-        self._mapper = mapper
+        self._mapper = mapper  # MutableMapping()
 
         self._mapper_accessor = ModelDictAccessor(mapper)
         self._origin_accessor = ModelAccessor(origin_model)
         self._destination_accessor = ModelAccessor(destination_model)
 
-        self._children_accesses = set()
+        # Variable to record tuple(orig_access, dest_access, model_mapper_obj)
+        self._children_declarations = set()
 
     @staticmethod
     def factory(orig_model, dest_model, mapper):
@@ -30,6 +39,18 @@ class ModelMapper(object):
         elif isinstance(orig_model, list) or isinstance(dest_model, list):
             return UniformListModelMapper(orig_model, dest_model, mapper)
         else:
+            return ModelMapper(orig_model, dest_model, mapper)
+
+    def create_child_by_declaration_type(self, declaration):
+        orig_model = self._origin_accessor.get(declaration.origin_access)
+        dest_model = self._destination_accessor.get(declaration.destination_access)
+        mapper = declaration.mapper
+
+        if isinstance(declaration, ListMapperDeclaration):
+            return ListModelMapper(orig_model, dest_model, mapper)
+        elif isinstance(declaration, UniformMapperDeclaration):
+            return UniformListModelMapper(orig_model, dest_model, mapper)
+        elif isinstance(declaration, ModelMapperDeclaration):
             return ModelMapper(orig_model, dest_model, mapper)
 
     @property
@@ -75,26 +96,18 @@ class ModelMapper(object):
         self._origin_model = model
         self._origin_accessor = ModelAccessor(model)
 
-        for origin_access, _, mapper in self._children_accesses:
-            mapper.set_origin_model(self._origin_accessor[origin_access])
-
-    def _get_new_model_mapper(self, *args):
-        orig_access, dest_access = args[0], args[1]
-        model_mapper = ModelMapper.factory(self._origin_accessor[orig_access],
-                                           self._destination_accessor[dest_access],
-                                           args[2])
-        child = (orig_access, dest_access, model_mapper)
-
-        self._children_accesses.add(child)
-        return model_mapper
+        for orig_access, _, model_mapper in self._children_declarations:
+            model_mapper.set_origin_model(self._origin_accessor[orig_access])
 
     def _prepare_mapper_and_get_new_mappers(self):
-        get_new_model_mapper = self._get_new_model_mapper
+        children_declarations = self._children_declarations
+        create_child_by_declaration = self.create_child_by_declaration_type
 
-        for link_name, link_args in self._mapper_accessor.iteritems():
-            args_length = len(link_args)
-            if args_length >= 3:
-                yield link_name, get_new_model_mapper(*link_args)
+        for link_name, declaration_type in self._mapper_accessor.iteritems():
+            if not isinstance(declaration_type, FieldDeclaration):
+                model_mapper = create_child_by_declaration(declaration_type)
+                children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
+                yield link_name, model_mapper
 
     def prepare_mapper(self):
         mapper = self._mapper_accessor
@@ -104,7 +117,7 @@ class ModelMapper(object):
             mapper[link_name] = model_mapper
             mapper[link_name].prepare_mapper()
 
-    def _setter(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
+    def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
         for _, link_value in self._mapper_accessor.iteritems():
             if isinstance(link_value, ModelMapper):
                 orig_to_dest_or_vice_versa = getattr(link_value, func_name)
@@ -118,10 +131,10 @@ class ModelMapper(object):
                     pass
 
     def destination_to_origin(self):
-        self._setter('destination_to_origin', self._origin_accessor, self._destination_accessor, 0, 1)
+        self._values_updater('destination_to_origin', self._origin_accessor, self._destination_accessor, 0, 1)
 
     def origin_to_destination(self):
-        self._setter('origin_to_destination', self._destination_accessor, self._origin_accessor, 1, 0)
+        self._values_updater('origin_to_destination', self._destination_accessor, self._origin_accessor, 1, 0)
 
     def to_dict(self, only_origin=False, only_destination=False):
         dest_accessor = self._destination_accessor
@@ -152,7 +165,11 @@ class ListModelMapper(ModelMapper):
 
     LINK = '[{}].{}'
 
-    def _setter(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
+    def __init__(self, origin_model, destination_model, mapper):
+        origin_model = origin_model if origin_model is None else list()
+        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper)
+
+    def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
         link = ListModelMapper.LINK.format
 
         for _, link_value in self._mapper_accessor.iteritems():
@@ -213,18 +230,41 @@ class UniformListModelMapper(ModelMapper):
     def __init__(self, origin_model, destination_model, mapper):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
 
-        self._orig_data = origin_model
+        self._orig_data = origin_model or []
         self._index = 0
         origin_model = origin_model[0] if len(origin_model) > 0 else dict()
         super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper)
+
+    @property
+    def orig_data(self):
+        return self._orig_data
+
+    @orig_data.setter
+    def orig_data(self, value):
+        self._orig_data = value
 
     def set_origin_model(self, model):
         self._orig_data = model
         self._origin_model = model[self._index]
         self._origin_accessor = ModelAccessor(self._origin_model)
 
-        for mapper, origin_access, _ in self._children_accesses:
-            mapper.origin_model = self._origin_accessor[origin_access]
+        for orig_access, _, model_mapper in self._children_declarations:
+            model_mapper.origin_model = self._origin_accessor[orig_access]
+
+    def origin_to_destination(self):
+        if not self._orig_data:
+            return
+        self._values_updater('origin_to_destination', self._destination_accessor, self._origin_accessor, 1, 0)
+
+    def insert_data(self, data_model=None, index=-1):
+        data_model = dict() if data_model is None else data_model
+        self.orig_data.insert(index, data_model)
+
+    def delete_data(self, index=-1):
+        try:
+            del self.orig_data[index]
+        except IndexError:
+            raise exceptions.ModelMapperError("The index {} is out of range".format(index))
 
     @property
     def index(self):

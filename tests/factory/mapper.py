@@ -27,10 +27,10 @@ class ModelMapperFactoryTest(unittest.TestCase):
         dest.val_ddd.val_a = "New test val_ddd.val_a"
         dest.val_dddd = "New test val_dddd"
         dest.val_complex.set_val("New test val_complex")
-        dest.val_list[0] = A(**{'a': 4, 'aa': [], 'aaa': "1"})
-        dest.val_list.append(A(**{'a': 5, 'aa': [1], 'aaa': "2"}))
-        dest.val_list.append(A(**{'a': 6, 'aa': [1, 2], 'aaa': "3"}))
-        dest.val_list.append(A(**{'a': 7, 'aa': [3, 4], 'aaa': "4"}))
+        # dest.val_list[0] = A(**{'a': 4, 'aa': [], 'aaa': "1"})
+        # dest.val_list.append(A(**{'a': 5, 'aa': [1], 'aaa': "2"}))
+        # dest.val_list.append(A(**{'a': 6, 'aa': [1, 2], 'aaa': "3"}))
+        # dest.val_list.append(A(**{'a': 7, 'aa': [3, 4], 'aaa': "4"}))
 
     def assert_all(self):
         self._assert_root_basic_values()
@@ -43,13 +43,13 @@ class ModelMapperFactoryTest(unittest.TestCase):
         self._assert_child_uniform_list_model_values(d_link_index=1, ccc_link_index=0, assert_equal=False)
         self._assert_child_uniform_list_model_values(d_link_index=1, ccc_link_index=1, assert_equal=False)
 
-        self._assert_list_model_values()
+        # self._assert_list_model_values()
 
-    def _assert_list_model_values(self, assert_equal=True):
-        assert_ = self._get_assert(assert_equal)
-
-        for i, orig_item in enumerate(self._origin_model['d_list']):
-            assert_(orig_item, self._destination_model.val_list[i].get_all())
+    # def _assert_list_model_values(self, assert_equal=True):
+    #     assert_ = self._get_assert(assert_equal)
+    #
+    #     for i, orig_item in enumerate(self._origin_model['d_list']):
+    #         assert_(orig_item, self._destination_model.val_list[i].get_all())
 
     def _assert_parent_uniform_list_model_values(self, d_link_index=0, assert_equal=True):
         orig_parent = self._origin_model['d'][d_link_index]
@@ -97,12 +97,13 @@ class ModelMapperFactoryTest(unittest.TestCase):
                          'New test val_dd.val_b'),
             'ddd_link': (1, 'New test val_ddd.val_a'),
             'dddd_link': (1, 'New test val_dddd'),
-            'list_link': ([{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
-                           {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}],
-                          [{'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
-                           {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
-                           {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
-                           {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}])}
+            # 'list_link': ([{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
+            #                {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}],
+            #               [{'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
+            #                {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
+            #                {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
+            #                {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}])
+        }
 
         expected_only_origin_data = {
             'complex_link': 'fake1',
@@ -118,8 +119,9 @@ class ModelMapperFactoryTest(unittest.TestCase):
             'dd_link': {'new_val_1': 'fake1', 'new_val_2': 'fake2'},
             'ddd_link': 1,
             'dddd_link': 1,
-            'list_link': [{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
-                          {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}]}
+            # 'list_link': [{'a_link': 1, 'aa_link': [1, 2], 'aaa_link': 'fake aaa 1'},
+            #               {'a_link': 2, 'aa_link': [2, 3], 'aaa_link': 'fake aaa 2'}]
+        }
 
         expected_only_destination_data = {
             'complex_link': 'New test val_complex',
@@ -132,11 +134,12 @@ class ModelMapperFactoryTest(unittest.TestCase):
             'dd_link': 'New test val_dd.val_b',
             'ddd_link': 'New test val_ddd.val_a',
             'dddd_link': 'New test val_dddd',
-            'list_link': [
-                {'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
-                {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
-                {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
-                {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}]}
+            # 'list_link': [
+            #     {'a_link': 4, 'aa_link': [], 'aaa_link': '1'},
+            #     {'a_link': 5, 'aa_link': [1], 'aaa_link': '2'},
+            #     {'a_link': 6, 'aa_link': [1, 2], 'aaa_link': '3'},
+            #     {'a_link': 7, 'aa_link': [3, 4], 'aaa_link': '4'}]
+        }
 
         if only_destination:
             return expected_only_destination_data

@@ -35,12 +35,6 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
         self._assert_parent_uniform_list_model_values(d_link_index=d_link_index, assert_equal=assert_equal)
         self._assert_child_uniform_list_model_values(d_link_index=d_link_index, assert_equal=assert_equal)
 
-    def test_model_list_updates_with_non_autoresize(self):
-        self._model_mapper['list_link'].autoresize = False
-
-        with self.assertRaises(ModelAccessorIndexError):
-            self._model_mapper.origin_to_destination()
-
     def test_to_dict_data(self):
         self.update_destination_values()
         self.assertEqual(self.get_dict_data(), self._model_mapper.to_dict())

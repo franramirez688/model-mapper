@@ -1,7 +1,7 @@
 import unittest
 from collections import OrderedDict
 
-from modelmapper.core import ModelMapper
+from modelmapper.core import ModelMapper, UniformMapperDeclaration, FieldDeclaration
 from modelmapper.qt.fields import ReadOnlyAccessor, MemoryListAccessor, String
 
 
@@ -30,19 +30,8 @@ def get_response_cert_information_data():
     return {'oper_information': [], 'certificate': [], 'response': None}
 
 
-def get_frutas_lineas_mapper():
-    return {
-        'pack_mark': ('pack_mark', String('pack_mark'))
-    }
-
-
 def get_origin_data():
-    return {'custom_location': None, 'sends': [], 'agent': None, 'creation_date': None, 'transport_other_license': None,
-            'response_cert': [get_response_cert_data()], 'code_pi': None, 'orig_country_code': None, 'modification_date': None, 'custom': None,
-            'packer': None, 'annexs': [], 'location': None, 'username': None, 'id_': None, 'code_cice': None,
-            'registered': False, 'row_type': u'requestfrutas', 'agent_id': None, 'transport_license': None,
-            'request_type_code': None, 'reference': None, 'request_id_': None, 'lines': [], 'cice_pi': None,
-            'dest_country_code': None, 'soivre_number': None, 'obsv': None, 'imex_code': None, 'transport_code': None}
+    return {'sends': [], 'response_cert': [get_response_cert_data()], 'row_type': u'requestfrutas', 'lines': []}
 
 
 # DESTINATION
@@ -115,20 +104,33 @@ class Soivre(object):
 
 
 # MAPPER
+def get_frutas_datos_generales_mapper():
+    return {
+        'agent': FieldDeclaration('pack_mark', String('pack_mark')),
+        'creation_date': FieldDeclaration('pack_mark', String('pack_mark')),
+        'transport_other_license': FieldDeclaration('pack_mark', String('pack_mark')),
+    }
+
+
+def get_frutas_lineas_mapper():
+    return {
+        'pack_mark': FieldDeclaration('pack_mark', String('pack_mark'))
+    }
+
 def get_envios_mapper():
     sends_mapper = OrderedDict()
-    sends_mapper['sends'] = ('sends', MemoryListAccessor('sends.sends'))
-    sends_mapper['lines_sends'] = ('sends[*].lines', MemoryListAccessor('sends.lines_sends'))
-    sends_mapper['lines_errors'] = ('sends[*].lines[*].errors', MemoryListAccessor('sends.lines_errors'))
+    sends_mapper['sends'] = FieldDeclaration('sends', MemoryListAccessor('sends.sends'))
+    # sends_mapper['lines_sends'] = FieldDeclaration('sends[*].lines', MemoryListAccessor('sends.lines_sends'))
+    # sends_mapper['lines_errors'] = FieldDeclaration('sends[*].lines[*].errors', MemoryListAccessor('sends.lines_errors'))
     return sends_mapper
 
 
 def get_respuestas_mapper():
     responses_mapper = OrderedDict()
-    responses_mapper['information'] = ('response_cert', MemoryListAccessor('information'))
-    responses_mapper['oper_information'] = ('response_cert.oper_information', MemoryListAccessor('oper_information'))
-    responses_mapper['certificate_detail'] = ('response_cert.certificate', MemoryListAccessor('certificate'))
-    responses_mapper['certificate_line'] = ('response_cert.certificate.lines', MemoryListAccessor('certificate_line'))
+    responses_mapper['information'] = FieldDeclaration('response_cert', MemoryListAccessor('information'))
+    responses_mapper['oper_information'] = FieldDeclaration('response_cert.oper_information', MemoryListAccessor('oper_information'))
+    responses_mapper['certificate_detail'] = FieldDeclaration('response_cert.certificate', MemoryListAccessor('certificate'))
+    responses_mapper['certificate_line'] = FieldDeclaration('response_cert.certificate.lines', MemoryListAccessor('certificate_line'))
     return responses_mapper
 
 
@@ -136,8 +138,8 @@ def get_frutas_mapper():
     mapper = OrderedDict()
     mapper.update(get_envios_mapper())
     mapper.update(get_respuestas_mapper())
-    mapper['lines'] = ('lines', 'lines', get_frutas_lineas_mapper())
-    mapper['resumen'] = (ReadOnlyAccessor('lines'), MemoryListAccessor('resumen.resumen_mercancias'))
+    mapper['lines'] = UniformMapperDeclaration('lines', 'lines', get_frutas_lineas_mapper())
+    mapper['resumen'] = FieldDeclaration(ReadOnlyAccessor('lines'), MemoryListAccessor('resumen.resumen_mercancias'))
     return mapper
 
 
@@ -155,12 +157,12 @@ class ModelMapperFactoryTest(unittest.TestCase):
         self._model_mapper.origin_to_destination()
 
     def test_origin_loads_data_from_destination(self):
-        self.update_destination_values()
+        # self.update_destination_values()
         self._model_mapper.destination_to_origin()
 
-    def update_destination_values(self):
-        self._destination_model.response_cert.information.model().set_source([1, 2, 3])
-        self._destination_model.response_cert.oper_information.model().set_source([1, 2, 3])
-        self._destination_model.sends.sends.model().set_source([1, 2, 3])
-        self._destination_model.sends.lines_sends.model().set_source([1, 2, 3])
-        self._destination_model.sends.lines_errors.model().set_source([1, 2, 3])
+    # def update_destination_values(self):
+    #     self._destination_model.response_cert.information.model().set_source([1, 2, 3])
+    #     self._destination_model.response_cert.oper_information.model().set_source([1, 2, 3])
+    #     self._destination_model.sends.sends.model().set_source([1, 2, 3])
+    #     self._destination_model.sends.lines_sends.model().set_source([1, 2, 3])
+    #     self._destination_model.sends.lines_errors.model().set_source([1, 2, 3])
