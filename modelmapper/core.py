@@ -104,7 +104,7 @@ class ModelMapper(object):
         create_child_by_declaration = self.create_child_by_declaration_type
 
         for link_name, declaration_type in self._mapper_accessor.iteritems():
-            if not isinstance(declaration_type, FieldDeclaration):
+            if not isinstance(declaration_type, (FieldDeclaration, ModelMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
                 children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
                 yield link_name, model_mapper
