@@ -62,6 +62,9 @@ class ModelMapper(object):
         self._origin_model = val
         self._origin_accessor = ModelAccessor(val)
 
+        for orig_access, _, model_mapper in self._children_declarations:
+            model_mapper.origin_model = self._origin_accessor[orig_access]
+
     @property
     def destination_model(self):
         return self._destination_model
@@ -70,6 +73,9 @@ class ModelMapper(object):
     def destination_model(self, val):
         self._destination_model = val
         self._destination_accessor = ModelAccessor(val)
+
+        for _, dest_access, model_mapper in self._children_declarations:
+            model_mapper.destination_model = self._destination_accessor[dest_access]
 
     @property
     def mapper(self):
@@ -91,13 +97,6 @@ class ModelMapper(object):
     @property
     def mapper_accessor(self):
         return self._mapper_accessor
-
-    def set_origin_model(self, model):
-        self._origin_model = model
-        self._origin_accessor = ModelAccessor(model)
-
-        for orig_access, _, model_mapper in self._children_declarations:
-            model_mapper.set_origin_model(self._origin_accessor[orig_access])
 
     def _prepare_mapper_and_get_new_mappers(self):
         children_declarations = self._children_declarations
@@ -243,9 +242,10 @@ class UniformListModelMapper(ModelMapper):
     def orig_data(self, value):
         self._orig_data = value
 
-    def set_origin_model(self, model):
-        self._orig_data = model
-        self._origin_model = model[self._index]
+    @ModelMapper.origin_model.setter
+    def origin_model(self, val):
+        self._orig_data = val
+        self._origin_model = val[self._index]
         self._origin_accessor = ModelAccessor(self._origin_model)
 
         for orig_access, _, model_mapper in self._children_declarations:
@@ -262,7 +262,7 @@ class UniformListModelMapper(ModelMapper):
 
     def delete_data(self, index=-1):
         try:
-            del self.orig_data[index]
+            self.orig_data.pop(index)
         except IndexError:
             raise exceptions.ModelMapperError("The index {} is out of range".format(index))
 
@@ -284,7 +284,8 @@ class UniformListModelMapper(ModelMapper):
         self._index = index
         self._origin_model = self._orig_data[index]
         self._origin_accessor = ModelAccessor(self._origin_model)
-        super(UniformListModelMapper, self).set_origin_model(self._origin_model)
+        # Calling to parent's origin_model setter
+        ModelMapper.origin_model.fset(self, self._origin_model)
 
     def to_dict(self, only_origin=False, only_destination=False):
         if only_origin:
