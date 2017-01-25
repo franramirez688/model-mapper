@@ -1,11 +1,8 @@
 import re
 from abc import ABCMeta
-from functools import wraps
-
-import six
 
 from modelmapper import exceptions
-from modelmapper.compat import filter
+from modelmapper.compat import filter, iteritems
 
 
 def handle_exceptions(f):
@@ -156,7 +153,7 @@ class SpecialListAccessor(object):
 class ModelDictAccessor(ModelAccessor):
 
     def iteritems(self):
-        return six.iteritems(self._model)
+        return iteritems(self._model)
 
 
 class FieldAccessor(object):

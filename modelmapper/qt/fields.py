@@ -9,6 +9,11 @@ from modelmapper.exceptions import FieldAccessorError
 
 class QWidgetAccessor(FieldAccessor):
 
+    def __init__(self, access):
+        super(QWidgetAccessor, self).__init__(access)
+        self.validator = None
+        self.help_field = None
+
     @property
     def widget(self):
         return self.field
@@ -18,6 +23,9 @@ class QWidgetAccessor(FieldAccessor):
 
     def set_value(self, value):
         self.widget.metaObject().userProperty().write(self.widget, value)
+
+    def validate(self):
+        self.validator.validate(self.get_value())
 
 
 class QLineEditAccessor(QWidgetAccessor):
