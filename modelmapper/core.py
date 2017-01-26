@@ -19,7 +19,7 @@ UniformMapperDeclaration = namedtuple('UniformMapperDeclaration', ModelMapperDec
 MetaDeclaration = namedtuple('MetaDeclaration', 'field_name validators help_field')
 
 
-class MapperMixin(object):
+class MetaModelMapper(object):
 
     def validate(self):
         for link_name, link_value in self._mapper_accessor.iteritems():
@@ -185,67 +185,6 @@ class ModelMapper(object):
     __getattr__ = __getitem__  # If getattr(self, 'link')
 
 
-class ListModelMapper(ModelMapper):
-
-    LINK = '[{}].{}'
-
-    def __init__(self, origin_model, destination_model, mapper, meta_mapper=None):
-        origin_model = origin_model if origin_model is None else list()
-        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper, meta_mapper=meta_mapper)
-
-    def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
-        link = ListModelMapper.LINK.format
-
-        for _, link_value in self._mapper_accessor.iteritems():
-            for index, _ in enumerate(accessor_to_get.model):
-                if isinstance(link_value, ModelMapper):
-                    orig_to_dest_or_vice_versa = getattr(link_value, func_name)
-                    orig_to_dest_or_vice_versa()
-                else:
-                    item_to_set = link(index, link_value[setter_index])
-                    item_to_get = link(index, link_value[getter_index])
-                    try:
-                        accessor_to_set[item_to_set] = accessor_to_get[item_to_get]
-                    except exceptions.ModelAccessorAttributeError:
-                        pass
-
-    def to_dict(self, only_origin=False, only_destination=False):
-        if only_origin:
-            return self._to_dict_only_origin()
-        elif only_destination:
-            return self._to_dict_only_destination()
-        else:
-            return (self._to_dict_only_origin(), self._to_dict_only_destination())
-
-    def _to_dict_only_destination(self):
-        dest_accessor = self._destination_accessor
-        model = self._destination_model
-        ret = [dict() for _ in range(len(model))]
-        link = ListModelMapper.LINK.format
-
-        for link_name, link_value in self._mapper_accessor.iteritems():
-            for index, _ in enumerate(model):
-                if isinstance(link_value, ModelMapper):
-                    ret[index][link_name] = link_value.to_dict(only_destination=True)
-                else:
-                    ret[index][link_name] = dest_accessor[link(index, link_value[1])]
-        return ret
-
-    def _to_dict_only_origin(self):
-        orig_accessor = self._origin_accessor
-        model = self._origin_model
-        ret = [dict() for _ in range(len(model))]
-        link = ListModelMapper.LINK.format
-
-        for link_name, link_value in self._mapper_accessor.iteritems():
-            for index, _ in enumerate(model):
-                if isinstance(link_value, ModelMapper):
-                    ret[index][link_name] = link_value.to_dict(only_origin=True)
-                else:
-                    ret[index][link_name] = orig_accessor[link(index, link_value[0])]
-        return ret
-
-
 # TODO: At this moment is only possible to be the origin a list
 
 
@@ -334,4 +273,65 @@ class UniformListModelMapper(ModelMapper):
                 else:
                     ret[index][link_name] = self._origin_accessor[link_value[0]]
         update_index(current_index)
+        return ret
+
+
+class ListModelMapper(ModelMapper):
+
+    LINK = '[{}].{}'
+
+    def __init__(self, origin_model, destination_model, mapper, meta_mapper=None):
+        origin_model = origin_model if origin_model is None else list()
+        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper, meta_mapper=meta_mapper)
+
+    def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
+        link = ListModelMapper.LINK.format
+
+        for _, link_value in self._mapper_accessor.iteritems():
+            for index, _ in enumerate(accessor_to_get.model):
+                if isinstance(link_value, ModelMapper):
+                    orig_to_dest_or_vice_versa = getattr(link_value, func_name)
+                    orig_to_dest_or_vice_versa()
+                else:
+                    item_to_set = link(index, link_value[setter_index])
+                    item_to_get = link(index, link_value[getter_index])
+                    try:
+                        accessor_to_set[item_to_set] = accessor_to_get[item_to_get]
+                    except exceptions.ModelAccessorAttributeError:
+                        pass
+
+    def to_dict(self, only_origin=False, only_destination=False):
+        if only_origin:
+            return self._to_dict_only_origin()
+        elif only_destination:
+            return self._to_dict_only_destination()
+        else:
+            return (self._to_dict_only_origin(), self._to_dict_only_destination())
+
+    def _to_dict_only_destination(self):
+        dest_accessor = self._destination_accessor
+        model = self._destination_model
+        ret = [dict() for _ in range(len(model))]
+        link = ListModelMapper.LINK.format
+
+        for link_name, link_value in self._mapper_accessor.iteritems():
+            for index, _ in enumerate(model):
+                if isinstance(link_value, ModelMapper):
+                    ret[index][link_name] = link_value.to_dict(only_destination=True)
+                else:
+                    ret[index][link_name] = dest_accessor[link(index, link_value[1])]
+        return ret
+
+    def _to_dict_only_origin(self):
+        orig_accessor = self._origin_accessor
+        model = self._origin_model
+        ret = [dict() for _ in range(len(model))]
+        link = ListModelMapper.LINK.format
+
+        for link_name, link_value in self._mapper_accessor.iteritems():
+            for index, _ in enumerate(model):
+                if isinstance(link_value, ModelMapper):
+                    ret[index][link_name] = link_value.to_dict(only_origin=True)
+                else:
+                    ret[index][link_name] = orig_accessor[link(index, link_value[0])]
         return ret
