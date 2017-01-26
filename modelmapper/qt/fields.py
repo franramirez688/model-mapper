@@ -147,4 +147,4 @@ class PlainTextEdit(QWidgetAccessor):
         self.widget.setPlainText(val)
 
     def get_value(self):
-        return self.widget.plainText or None
+        return self.widget.toPlainText() or None
