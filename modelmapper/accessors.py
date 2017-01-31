@@ -90,7 +90,8 @@ class ModelAccessor(object):
 
     def __getitem__(self, item):
         if isinstance(item, FieldAccessor):
-            item.parent_accessor = self
+            if item.parent_accessor is None:
+                item.parent_accessor = self
             return item.get_value()
         elif self.SPECIAL_LIST_INDICATOR in item:
             return SpecialListAccessor.get_item(self, item)
@@ -99,7 +100,8 @@ class ModelAccessor(object):
 
     def __setitem__(self, item, value):
         if isinstance(item, FieldAccessor):
-            item.parent_accessor = self
+            if item.parent_accessor is None:
+                item.parent_accessor = self
             item.set_value(value)
         elif self.SPECIAL_LIST_INDICATOR in item:
             SpecialListAccessor.set_item(self, item, value)
@@ -160,9 +162,9 @@ class FieldAccessor(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, access):
+    def __init__(self, access, parent_accessor=None):
         self.access = access
-        self._parent_accessor = None
+        self._parent_accessor = parent_accessor
 
     @property
     def field(self):

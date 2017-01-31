@@ -4,35 +4,16 @@ from modelmapper import exceptions
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor
 
 
-FieldDeclaration = namedtuple('FieldDeclaration', 'origin_access destination_access')
+Field = namedtuple('Field', 'origin_access destination_access')
 
 
-ModelMapperDeclaration = namedtuple('MapperDeclaration', FieldDeclaration._fields + ('mapper',))
+Mapper = namedtuple('Mapper', Field._fields + ('mapper',))
 
 
-ListMapperDeclaration = namedtuple('ListMapperDeclaration', ModelMapperDeclaration._fields)
+ListMapper = namedtuple('ListMapper', Mapper._fields)
 
 
-UniformMapperDeclaration = namedtuple('UniformMapperDeclaration', ModelMapperDeclaration._fields)
-
-
-MetaDeclaration = namedtuple('MetaDeclaration', 'field_name validators help_field')
-
-
-class MetaModelMapper(object):
-
-    def validate(self):
-        for link_name, link_value in self._mapper_accessor.iteritems():
-            meta_info = self._meta_mapper_accessor[link_name]
-
-            if isinstance(link_value, ModelMapper):
-                link_value.validate()
-            else:
-                dest_item = link_value[1]
-                meta_info.validator.validate(dest_item.get_value())  # validator?? validator.validate(self.widget.get_value())
-
-    def help_fields(self):
-        pass
+UniformMapper = namedtuple('UniformMapper', Mapper._fields)
 
 
 class ModelMapper(object):
@@ -71,11 +52,11 @@ class ModelMapper(object):
         orig_model = self._origin_accessor.get(orig_access) if orig_access else self._origin_accessor.model
         dest_model = self._destination_accessor.get(dest_access) if dest_access else self._destination_accessor.model
 
-        if isinstance(declaration, ListMapperDeclaration):
+        if isinstance(declaration, ListMapper):
             return ListModelMapper(orig_model, dest_model, mapper)
-        elif isinstance(declaration, UniformMapperDeclaration):
+        elif isinstance(declaration, UniformMapper):
             return UniformListModelMapper(orig_model, dest_model, mapper)
-        elif isinstance(declaration, ModelMapperDeclaration):
+        elif isinstance(declaration, Mapper):
             return ModelMapper(orig_model, dest_model, mapper)
 
     @property
@@ -128,7 +109,7 @@ class ModelMapper(object):
         create_child_by_declaration = self.create_child_by_declaration_type
 
         for link_name, declaration_type in self._mapper_accessor.iteritems():
-            if not isinstance(declaration_type, (FieldDeclaration, ModelMapper)):
+            if isinstance(declaration_type, (Mapper, UniformMapper, ListMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
                 children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
                 yield link_name, model_mapper

@@ -9,11 +9,6 @@ from modelmapper.accessors import FieldAccessor
 
 class QWidgetAccessor(FieldAccessor):
 
-    def __init__(self, access):
-        super(QWidgetAccessor, self).__init__(access)
-        self.validator = None
-        self.help_field = None
-
     @property
     def widget(self):
         return self.field
@@ -23,26 +18,6 @@ class QWidgetAccessor(FieldAccessor):
 
     def set_value(self, value):
         self.widget.metaObject().userProperty().write(self.widget, value)
-
-    def validate(self):
-        val = self.get_value()
-        try:
-            self.validator.validate(val)
-        except Exception as errors:
-            self.set_error(getattr(errors, 'error', errors))
-            raise
-
-    def set_error(self, error):
-        self.widget.setStatusTip(error)
-        self.widget.setToolTip(error)
-        self.widget.setStyleSheet('border: 1px solid red;'
-                                  'border-radius: 5px')
-
-    def clear_error(self):
-        self.widget.setStatusTip('')
-        self.widget.setToolTip('')
-        self.widget.setStyleSheet('border: 1px solid lightgray;'
-                                  'border-radius: 5px;')
 
 
 class QLineEditAccessor(QWidgetAccessor):
@@ -86,9 +61,9 @@ class Autocomplete(QLineEditAccessor):
 
 class LineDate(QLineEditAccessor):
 
-    def __init__(self, access, from_format='%Y-%m-%dT%H:%M:%S'):
+    def __init__(self, access, parent_accessor=None, from_format='%Y-%m-%dT%H:%M:%S'):
         self.from_format = from_format
-        super(LineDate, self).__init__(access)
+        super(LineDate, self).__init__(access, parent_accessor=parent_accessor)
 
     def set_value(self, value):
         if value and isinstance(value, compat.basestring):
