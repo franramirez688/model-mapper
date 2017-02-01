@@ -7,7 +7,6 @@ from setuptools import setup, find_packages
 
 here = os.path.dirname(os.path.abspath(__file__))
 README = open(os.path.join(here, 'README.md')).read()
-# REQUIREMENTS = open(os.path.join(here, 'requirements', 'common.txt')).readlines()
 
 from modelmapper import __version__
 
@@ -22,5 +21,4 @@ setup(
     long_description=README,
     description='Gestor de conexiones entre estructuras de datos',
     packages=find_packages()
-    # install_requires=REQUIREMENTS,
 )
