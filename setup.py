@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from modelmapper import __version__
 
@@ -19,5 +19,5 @@ setup(
     maintainer_email='desarrollo.madrid@taric.es',
     long_description=read('README.md'),
     description='Gestor de conexiones entre estructuras de datos',
-    packages=['modelmapper']
+    packages=find_packages(exclude=['tests', 'tests.*'])
 )
