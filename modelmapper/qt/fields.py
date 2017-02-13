@@ -26,7 +26,7 @@ class QLineEditAccessor(QWidgetAccessor):
         return self.widget.text()
 
     def set_value(self, value):
-        val = str(value) if value else ''
+        val = compat.unicode(value) if value else ''
         self.widget.setText(val)
 
 
@@ -43,7 +43,7 @@ class String(QLineEditAccessor):
 
     def get_value(self):
         value = super(String, self).get_value()
-        return str(value) if value else None
+        return compat.unicode(value) if value else None
 
 
 class Autocomplete(QLineEditAccessor):

@@ -9,10 +9,11 @@ from modelmapper.accessors import FieldAccessor
 
 class QWidgetAccessor(FieldAccessor):
 
-    def __init__(self, access, parent_accessor=None, listener=None):
+    def __init__(self, access, parent_accessor=None, spy=None):
         self.access = access
         self._dirty_bit = False
         self._parent_accessor = parent_accessor
+        self._spy = spy
 
     @property
     def dirty_bit(self):
@@ -35,6 +36,9 @@ class QWidgetAccessor(FieldAccessor):
     @property
     def value_changed(self):
         self._dirty_bit = True
+
+        if self._spy is not None:
+            self._spy.emit(self)
         # return QWidgetAccessor.valueChanged  -> signal
 
 
@@ -48,15 +52,6 @@ class QCombinedAccessor(object):
     def get_value(self):
         value_pairs = [(accessor.access, accessor.get_value()) for accessor in self._accessors]
         return dict(value_pairs)
-
-    def validate(self, val):
-        try:
-            self.validator.validate(self.get_value())
-            for accessor in self._accessors:
-                accessor.emit_value_ok()
-        except ValidationError as errors:
-            for accessor in self._accessors:
-                accessor.emit_value_error(errors.error.get(accessor.access))
 
 
 class QLineEditAccessor(QWidgetAccessor):
