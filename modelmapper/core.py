@@ -1,19 +1,6 @@
-from collections import namedtuple
-
 from modelmapper import exceptions
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor
-
-
-Field = namedtuple('Field', 'origin_access destination_access')
-
-
-Mapper = namedtuple('Mapper', Field._fields + ('mapper',))
-
-
-ListMapper = namedtuple('ListMapper', Mapper._fields)
-
-
-UniformMapper = namedtuple('UniformMapper', Mapper._fields)
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper
 
 
 class ModelMapper(object):

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from modelmapper import compat
 from modelmapper.accessors import FieldAccessor
+from modelmapper import pubsub
 
 
 class QWidgetAccessor(FieldAccessor):
@@ -19,6 +20,17 @@ class QWidgetAccessor(FieldAccessor):
     def set_value(self, value):
         self.widget.metaObject().userProperty().write(self.widget, value)
 
+    def connect_signals(self):
+        if self.value_changed:
+            self.value_changed.connect(self.publish_changes)
+
+    @property
+    def value_changed(self):
+        pass
+
+    def publish_changes(self, value):
+        pubsub.publish('widget_value_changed', self)
+
 
 class QLineEditAccessor(QWidgetAccessor):
 
@@ -28,6 +40,10 @@ class QLineEditAccessor(QWidgetAccessor):
     def set_value(self, value):
         val = str(value) if value else ''
         self.widget.setText(val)
+
+    @property
+    def value_changed(self):
+        return self.widget.textEdited
 
 
 class MemoryListAccessor(QWidgetAccessor):
