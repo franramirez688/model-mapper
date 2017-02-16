@@ -9,7 +9,7 @@ class Field(namedtuple('Field', 'origin_access destination_access name validator
         return super(Field, cls).__new__(cls, origin_access, destination_access, name, validator)
 
 
-class Mapper(namedtuple('Field', 'origin_access destination_access mapper name validator')):
+class Mapper(namedtuple('Mapper', 'origin_access destination_access mapper name validator')):
 
     __slots__ = ()
 

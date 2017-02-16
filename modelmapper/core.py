@@ -1,6 +1,7 @@
 from modelmapper import exceptions
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor
 from modelmapper.declarations import Mapper, UniformMapper, ListMapper
+from modelmapper.qt.fields import QWidgetAccessor
 
 
 class ModelMapper(object):
@@ -97,6 +98,10 @@ class ModelMapper(object):
                 model_mapper = create_child_by_declaration(declaration_type)
                 children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
                 yield link_name, model_mapper
+            elif isinstance(declaration_type[1], QWidgetAccessor):
+                dest_accessor = declaration_type[1]
+                dest_accessor.parent_accessor = self._destination_accessor
+                dest_accessor.connect_signals()
 
     def prepare_mapper(self):
         mapper = self._mapper_accessor
