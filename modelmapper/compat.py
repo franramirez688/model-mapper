@@ -7,6 +7,7 @@ if PY2:  # pragma: no cover
 
     filter = ifilter
     basestring = basestring
+    unicode = unicode
 
     def iteritems(d, **kw):
         return d.iteritems(**kw)
@@ -14,6 +15,7 @@ if PY2:  # pragma: no cover
 else:  # pragma: no cover
     filter = filter
     basestring = str
+    unicode = str
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))

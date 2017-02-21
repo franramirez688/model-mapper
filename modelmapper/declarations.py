@@ -21,3 +21,11 @@ class UniformMapper(Mapper): pass
 
 
 class ListMapper(Mapper): pass
+
+
+class CombinedField(object):
+
+    def __init__(self, *field_accesses, **info):
+        self.field_accesses = field_accesses
+        self.name = info.get('name', '')
+        self.validator = info.get('validator', '')

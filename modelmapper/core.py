@@ -1,7 +1,11 @@
 from modelmapper import exceptions
 from modelmapper.accessors import ModelAccessor, ModelDictAccessor
-from modelmapper.declarations import Mapper, UniformMapper, ListMapper
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField, Field
 from modelmapper.qt.fields import QWidgetAccessor
+from modelmapper.qt.listener import Listener
+
+
+_listener = Listener()
 
 
 class ModelMapper(object):
@@ -89,6 +93,20 @@ class ModelMapper(object):
     def mapper_accessor(self):
         return self._mapper_accessor
 
+    def prepare_fields(self):
+        for link_name, declaration_type in self._mapper_accessor.iteritems():
+            if isinstance(declaration_type, (ModelMapper)):
+                declaration_type.prepare_fields()
+            elif isinstance(declaration_type, CombinedField):
+                declarations = set([self._mapper_accessor[access] for access in declaration_type.field_accesses])
+                accessors = set([decl[1] for decl in declarations if isinstance(decl, (Field, tuple))])
+                _listener.add_combined_fields(accessors, declaration_type.validator)
+            elif isinstance(declaration_type[1], QWidgetAccessor):
+                dest_accessor = declaration_type[1]
+                dest_accessor.parent_accessor = self._destination_accessor
+                dest_accessor.validator = declaration_type[3] if len(declaration_type) > 3 else None
+                dest_accessor.connect_signals()
+
     def _prepare_mapper_and_get_new_mappers(self):
         children_declarations = self._children_declarations
         create_child_by_declaration = self.create_child_by_declaration_type
@@ -98,10 +116,6 @@ class ModelMapper(object):
                 model_mapper = create_child_by_declaration(declaration_type)
                 children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
                 yield link_name, model_mapper
-            elif isinstance(declaration_type[1], QWidgetAccessor):
-                dest_accessor = declaration_type[1]
-                dest_accessor.parent_accessor = self._destination_accessor
-                dest_accessor.connect_signals()
 
     def prepare_mapper(self):
         mapper = self._mapper_accessor
@@ -116,7 +130,7 @@ class ModelMapper(object):
             if isinstance(link_value, ModelMapper):
                 orig_to_dest_or_vice_versa = getattr(link_value, func_name)
                 orig_to_dest_or_vice_versa()
-            else:
+            elif isinstance(link_value, (Field, tuple)):
                 item_to_set = link_value[setter_index]
                 item_to_get = link_value[getter_index]
                 try:
