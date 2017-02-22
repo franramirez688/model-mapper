@@ -1,19 +1,7 @@
-from collections import namedtuple
-
 from modelmapper import exceptions
-from modelmapper.accessors import ModelAccessor, ModelDictAccessor
-
-
-Field = namedtuple('Field', 'origin_access destination_access')
-
-
-Mapper = namedtuple('Mapper', Field._fields + ('mapper',))
-
-
-ListMapper = namedtuple('ListMapper', Mapper._fields)
-
-
-UniformMapper = namedtuple('UniformMapper', Mapper._fields)
+from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField, Field
+from modelmapper.qt.fields import QWidgetAccessor
 
 
 class ModelMapper(object):
@@ -124,7 +112,7 @@ class ModelMapper(object):
             if isinstance(link_value, ModelMapper):
                 orig_to_dest_or_vice_versa = getattr(link_value, func_name)
                 orig_to_dest_or_vice_versa()
-            else:
+            elif isinstance(link_value, (Field, tuple)):
                 item_to_set = link_value[setter_index]
                 item_to_get = link_value[getter_index]
                 try:

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from modelmapper import compat
 from modelmapper.accessors import FieldAccessor
+from modelmapper import pubsub
 
 
 class QWidgetAccessor(FieldAccessor):
@@ -19,6 +20,23 @@ class QWidgetAccessor(FieldAccessor):
     def set_value(self, value):
         self.widget.metaObject().userProperty().write(self.widget, value)
 
+    def connect_signals(self):
+        if self.value_changed:
+            self.value_changed.connect(self.publish_changes)
+
+    @property
+    def value_changed(self):
+        pass
+
+    def publish_changes(self, value):
+        pubsub.publish('widget_value_changed', self)
+
+    def clear_error(self):
+        pass
+
+    def show_error(self, error):
+        pass
+
 
 class QLineEditAccessor(QWidgetAccessor):
 
@@ -28,6 +46,22 @@ class QLineEditAccessor(QWidgetAccessor):
     def set_value(self, value):
         val = compat.unicode(value) if value else ''
         self.widget.setText(val)
+
+    @property
+    def value_changed(self):
+        return self.widget.textEdited
+
+    def clear_error(self):
+        self.widget.setStyleSheet('border: 1px solid lightgray;'
+                                  'border-radius: 5px;')
+        self.widget.setToolTip('')
+        self.widget.setStatusTip('')
+
+    def show_error(self, error):
+        self.widget.setStyleSheet('border: 1px solid red;'
+                                  'border-radius: 5px')
+        self.widget.setStatusTip(error)
+        self.widget.setToolTip(error)
 
 
 class MemoryListAccessor(QWidgetAccessor):
@@ -57,6 +91,24 @@ class Autocomplete(QLineEditAccessor):
 
     def reset(self):
         self.widget.clear()
+
+    @property
+    def value_changed(self):
+        return self.widget.selected
+
+    def clear_error(self):
+        self.widget.setStyleSheet('border: 1px solid lightgray;'
+                                  'border-radius: 5px;')
+        self.widget.setToolTip('')
+        self.widget.setStatusTip('')
+
+    def show_error(self, error):
+        error = "ERROOOR" if isinstance(error, dict) else error
+        self.widget.setStyleSheet('border: 1px solid red;'
+                                  'border-radius: 5px')
+        self.widget.setStatusTip(error)
+        self.widget.setToolTip(error)
+
 
 
 class LineDate(QLineEditAccessor):
