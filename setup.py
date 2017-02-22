@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 from setuptools import setup, find_packages
 
-
-here = os.path.dirname(os.path.abspath(__file__))
-README = open(os.path.join(here, 'README.md')).read()
-
 from modelmapper import __version__
+
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 setup(
@@ -18,7 +17,7 @@ setup(
     author_email='desarrollo.madrid@taric.es',
     maintainer='Desarrollo Taric',
     maintainer_email='desarrollo.madrid@taric.es',
-    long_description=README,
+    long_description=read('README.md'),
     description='Gestor de conexiones entre estructuras de datos',
-    packages=find_packages()
+    packages=find_packages(exclude=['tests', 'tests.*'])
 )

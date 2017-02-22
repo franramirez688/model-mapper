@@ -1,26 +1,14 @@
-from collections import namedtuple
-
 from modelmapper import exceptions
-from modelmapper.accessors import ModelAccessor, ModelDictAccessor
-
-
-Field = namedtuple('Field', 'origin_access destination_access')
-
-
-Mapper = namedtuple('Mapper', Field._fields + ('mapper',))
-
-
-ListMapper = namedtuple('ListMapper', Mapper._fields)
-
-
-UniformMapper = namedtuple('UniformMapper', Mapper._fields)
+from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField, Field
+from modelmapper.qt.fields import QWidgetAccessor
 
 
 class ModelMapper(object):
     """Linker class between an origin model and a destination one
     """
 
-    def __init__(self, origin_model, destination_model, mapper, meta_mapper=None):
+    def __init__(self, origin_model, destination_model, mapper):
         self._origin_model = origin_model if origin_model is None else dict()
         self._destination_model = destination_model
         self._mapper = mapper  # MutableMapping()
@@ -28,9 +16,6 @@ class ModelMapper(object):
         self._mapper_accessor = ModelDictAccessor(mapper)
         self._origin_accessor = ModelAccessor(origin_model)
         self._destination_accessor = ModelAccessor(destination_model)
-
-        self._meta_mapper = meta_mapper
-        self._meta_mapper_accessor = ModelDictAccessor(meta_mapper)
 
         # Variable to record tuple(orig_access, dest_access, model_mapper_obj)
         self._children_declarations = set()
@@ -127,7 +112,7 @@ class ModelMapper(object):
             if isinstance(link_value, ModelMapper):
                 orig_to_dest_or_vice_versa = getattr(link_value, func_name)
                 orig_to_dest_or_vice_versa()
-            else:
+            elif isinstance(link_value, (Field, tuple)):
                 item_to_set = link_value[setter_index]
                 item_to_get = link_value[getter_index]
                 try:
@@ -171,13 +156,13 @@ class ModelMapper(object):
 
 class UniformListModelMapper(ModelMapper):
 
-    def __init__(self, origin_model, destination_model, mapper, meta_mapper=None):
+    def __init__(self, origin_model, destination_model, mapper):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
 
         self._orig_data = origin_model or []
         self._index = 0
         origin_model = origin_model[0] if len(origin_model) > 0 else dict()
-        super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper, meta_mapper=meta_mapper)
+        super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper)
 
     @property
     def orig_data(self):
@@ -261,9 +246,9 @@ class ListModelMapper(ModelMapper):
 
     LINK = '[{}].{}'
 
-    def __init__(self, origin_model, destination_model, mapper, meta_mapper=None):
+    def __init__(self, origin_model, destination_model, mapper):
         origin_model = origin_model if origin_model is None else list()
-        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper, meta_mapper=meta_mapper)
+        super(ListModelMapper, self).__init__(origin_model, destination_model, mapper)
 
     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
         link = ListModelMapper.LINK.format

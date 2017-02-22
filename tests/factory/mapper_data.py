@@ -1,5 +1,5 @@
 from modelmapper.accessors import FieldAccessor
-from modelmapper.core import Field, Mapper, UniformMapper
+from modelmapper.declarations import Field, Mapper, UniformMapper
 
 
 class ComplexAccessor(FieldAccessor):
