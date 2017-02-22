@@ -1,5 +1,5 @@
 from modelmapper import exceptions
-from modelmapper.accessors import ModelAccessor, ModelDictAccessor
+from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
 from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField, Field
 from modelmapper.qt.fields import QWidgetAccessor
 from modelmapper.qt.listener import Listener
@@ -105,6 +105,8 @@ class ModelMapper(object):
                 dest_accessor = declaration_type[1]
                 dest_accessor.parent_accessor = self._destination_accessor
                 dest_accessor.validator = declaration_type[3] if len(declaration_type) > 3 else None
+                dest_accessor.field_name = declaration_type[0].access if isinstance(declaration_type[0], FieldAccessor) else declaration_type[0]
+                dest_accessor.help_field = None
                 dest_accessor.connect_signals()
 
     def _prepare_mapper_and_get_new_mappers(self):

@@ -7,6 +7,7 @@ class Listener(object):
         self._combined_fields = []
         self.__cached_relations_map = dict()
         self.__accessors_without_relations = set()
+        self.__errors = dict()
 
         pubsub.subscribe(self.validate_changed_accessor, 'widget_value_changed')
         # pubsub.subscribe(self.validate_combined_accessor, 'widget_value_changed')
@@ -23,27 +24,32 @@ class Listener(object):
         # TODO: Exception to ValidationError de rome
         except Exception as errors:
             accessor.show_error(errors.error)
+            self.__errors[accessor.widget] = (accessor.access, errors.error)
         else:
             accessor.clear_error()
+            self.__errors.pop(accessor.widget, None)
             self.validate_combined_accessor(accessor)
 
     def validate_combined_accessor(self, accessor):
         for accessors, validator in self.get_accessor_relations(accessor):
-            value = dict([(acc.access, acc.get_value()) for acc in accessors])
+            value = dict([(acc.field_name, acc.get_value()) for acc in accessors])
             try:
-                print(value)
-                validator.validate(value)
-            # TODO: Exception to ValidationError de rome
+                # FIXME: TRICKY!!! combined validators fields require two variables
+                #        FieldCombined().validate(value, dependencies)
+                validator.validate(None, value)
+            # TODO: Exception -> rome ValidationError
             except Exception as errors:
                 for acc in accessors:
-                    print(unicode(errors))
                     acc.show_error(errors.error)
+                    self.__errors[acc.widget] = (acc.field_name, errors.error)
             else:
                 for acc in accessors:
                     acc.clear_error()
+                    self.__errors.pop(acc.widget, None)
 
     def get_accessor_relations(self, accessor):
-        if accessor in self.__cached_relations_map:
+        if (accessor in self.__cached_relations_map
+            or accessor in self.__accessors_without_relations):
             pass
         elif accessor not in self.__accessors_without_relations:
             _has_relations = False
