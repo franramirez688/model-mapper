@@ -1,7 +1,6 @@
 from modelmapper import exceptions
-from modelmapper.accessors import ModelAccessor, ModelDictAccessor, FieldAccessor
-from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField, Field
-from modelmapper.qt.fields import QWidgetAccessor
+from modelmapper.accessors import ModelAccessor
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper, Field
 
 
 class ModelMapper(object):
@@ -13,7 +12,7 @@ class ModelMapper(object):
         self._destination_model = destination_model
         self._mapper = mapper  # MutableMapping()
 
-        self._mapper_accessor = ModelDictAccessor(mapper)
+        self._mapper_accessor = ModelAccessor(mapper)
         self._origin_accessor = ModelAccessor(origin_model)
         self._destination_accessor = ModelAccessor(destination_model)
 
@@ -75,7 +74,7 @@ class ModelMapper(object):
     @mapper.setter
     def mapper(self, val):
         self._mapper = val
-        self._mapper_accessor = ModelDictAccessor(val)
+        self._mapper_accessor = ModelAccessor(val)
 
     @property
     def origin_accessor(self):
@@ -93,7 +92,7 @@ class ModelMapper(object):
         children_declarations = self._children_declarations
         create_child_by_declaration = self.create_child_by_declaration_type
 
-        for link_name, declaration_type in self._mapper_accessor.iteritems():
+        for link_name, declaration_type in self._mapper_accessor:
             if isinstance(declaration_type, (Mapper, UniformMapper, ListMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
                 children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
@@ -108,7 +107,7 @@ class ModelMapper(object):
             mapper[link_name].prepare_mapper()
 
     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
-        for _, link_value in self._mapper_accessor.iteritems():
+        for _, link_value in self._mapper_accessor:
             if isinstance(link_value, ModelMapper):
                 orig_to_dest_or_vice_versa = getattr(link_value, func_name)
                 orig_to_dest_or_vice_versa()
@@ -131,7 +130,7 @@ class ModelMapper(object):
         orig_accessor = self._origin_accessor
         ret = {}
 
-        for link_name, link_value in self._mapper_accessor.iteritems():
+        for link_name, link_value in self._mapper_accessor:
             if isinstance(link_value, ModelMapper):
                 ret[link_name] = link_value.to_dict(only_origin=only_origin, only_destination=only_destination)
             elif only_origin:
@@ -231,7 +230,7 @@ class UniformListModelMapper(ModelMapper):
         ret = [dict() for _ in range(len(model))]
         current_index = self._index
 
-        for link_name, link_value in self._mapper_accessor.iteritems():
+        for link_name, link_value in self._mapper_accessor:
             for index, _ in enumerate(model):
                 update_index(index)
                 if isinstance(link_value, ModelMapper):
@@ -253,7 +252,7 @@ class ListModelMapper(ModelMapper):
     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
         link = ListModelMapper.LINK.format
 
-        for _, link_value in self._mapper_accessor.iteritems():
+        for _, link_value in self._mapper_accessor:
             for index, _ in enumerate(accessor_to_get.model):
                 if isinstance(link_value, ModelMapper):
                     orig_to_dest_or_vice_versa = getattr(link_value, func_name)
@@ -280,7 +279,7 @@ class ListModelMapper(ModelMapper):
         ret = [dict() for _ in range(len(model))]
         link = ListModelMapper.LINK.format
 
-        for link_name, link_value in self._mapper_accessor.iteritems():
+        for link_name, link_value in self._mapper_accessor:
             for index, _ in enumerate(model):
                 if isinstance(link_value, ModelMapper):
                     ret[index][link_name] = link_value.to_dict(only_destination=True)
@@ -294,7 +293,7 @@ class ListModelMapper(ModelMapper):
         ret = [dict() for _ in range(len(model))]
         link = ListModelMapper.LINK.format
 
-        for link_name, link_value in self._mapper_accessor.iteritems():
+        for link_name, link_value in self._mapper_accessor:
             for index, _ in enumerate(model):
                 if isinstance(link_value, ModelMapper):
                     ret[index][link_name] = link_value.to_dict(only_origin=True)
