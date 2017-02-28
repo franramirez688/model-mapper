@@ -17,7 +17,7 @@ class ModelMapper(object):
         self._destination_accessor = ModelAccessor(destination_model)
 
         # Variable to record tuple(orig_access, dest_access, model_mapper_obj)
-        self._children_declarations = set()
+        self._children = set()
 
     @staticmethod
     def factory(orig_model, dest_model, mapper):
@@ -52,7 +52,7 @@ class ModelMapper(object):
         self._origin_model = val
         self._origin_accessor = ModelAccessor(val)
 
-        for orig_access, _, model_mapper in self._children_declarations:
+        for orig_access, _, model_mapper in self._children:
             model_mapper.origin_model = self._origin_accessor[orig_access]
 
     @property
@@ -64,7 +64,7 @@ class ModelMapper(object):
         self._destination_model = val
         self._destination_accessor = ModelAccessor(val)
 
-        for _, dest_access, model_mapper in self._children_declarations:
+        for _, dest_access, model_mapper in self._children:
             model_mapper.destination_model = self._destination_accessor[dest_access]
 
     @property
@@ -88,14 +88,18 @@ class ModelMapper(object):
     def mapper_accessor(self):
         return self._mapper_accessor
 
+    @property
+    def children(self):
+        return self._children
+
     def _prepare_mapper_and_get_new_mappers(self):
-        children_declarations = self._children_declarations
+        _add_children = self._children.add
         create_child_by_declaration = self.create_child_by_declaration_type
 
         for link_name, declaration_type in self._mapper_accessor:
             if isinstance(declaration_type, (Mapper, UniformMapper, ListMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
-                children_declarations.add((declaration_type[0], declaration_type[1], model_mapper))
+                _add_children((declaration_type[0], declaration_type[1], model_mapper))
                 yield link_name, model_mapper
 
     def prepare_mapper(self):
@@ -177,7 +181,7 @@ class UniformListModelMapper(ModelMapper):
         self._origin_model = val[self._index]
         self._origin_accessor = ModelAccessor(self._origin_model)
 
-        for orig_access, _, model_mapper in self._children_declarations:
+        for orig_access, _, model_mapper in self._children:
             model_mapper.origin_model = self._origin_accessor[orig_access]
 
     def origin_to_destination(self):
