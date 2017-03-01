@@ -25,13 +25,16 @@ class ModelMapper(object):
         self._destination_access = destination_access
 
     @staticmethod
-    def factory(orig_model, dest_model, mapper):
+    def factory(orig_model, dest_model, mapper, origin_access=None, destination_access=None):
         if isinstance(orig_model, list) and isinstance(dest_model, list):
-            return ListModelMapper(orig_model, dest_model, mapper)
+            return ListModelMapper(orig_model, dest_model, mapper,
+                                   origin_access=origin_access, destination_access=destination_access)
         elif isinstance(orig_model, list) or isinstance(dest_model, list):
-            return UniformListModelMapper(orig_model, dest_model, mapper)
+            return UniformListModelMapper(orig_model, dest_model, mapper,
+                                          origin_access=origin_access, destination_access=destination_access)
         else:
-            return ModelMapper(orig_model, dest_model, mapper)
+            return ModelMapper(orig_model, dest_model, mapper,
+                               origin_access=origin_access, destination_access=destination_access)
 
     def create_child_by_declaration_type(self, declaration):
         orig_access = declaration.origin_access
@@ -108,26 +111,26 @@ class ModelMapper(object):
     def children(self):
         return self._children
 
-    def _prepare_mapper(self):
+    def prepare_mapper(self):
         _add_children = self._children.add
         _add_field = self._fields.add
         _add_combined_field = self._combined_fields.add
         create_child_by_declaration = self.create_child_by_declaration_type
+        new_links = dict()
 
         for link_name, declaration_type in self._mapper_accessor:
             if isinstance(declaration_type, (Mapper, UniformMapper, ListMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
+                new_links[link_name] = model_mapper
+                model_mapper.prepare_mapper()
                 _add_children(model_mapper)
             elif isinstance(declaration_type, CombinedField):
                 _add_combined_field(declaration_type)
             else:
                 _add_field(declaration_type)
 
-    def prepare_mapper(self):
-        self._prepare_mapper()
-
-        for model_mapper in self._children:
-            model_mapper.prepare_mapper()
+        # Update mapper model to change Mapper declarations to ModelMapper classes
+        self._mapper_accessor.model.update(new_links)
 
     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
         for _, link_value in self._mapper_accessor:
