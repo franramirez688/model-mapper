@@ -29,3 +29,12 @@ class CombinedField(object):
         self.field_accesses = field_accesses
         self.name = info.get('name', '')
         self.validator = info.get('validator', '')
+        self._fields = None
+
+    @property
+    def fields(self):
+        return self._fields
+
+    @fields.setter
+    def fields(self, val):
+        self._fields = val
