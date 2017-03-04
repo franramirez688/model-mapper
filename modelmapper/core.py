@@ -111,7 +111,15 @@ class ModelMapper(object):
 
     @property
     def children(self):
-        return self._children
+        return self.children
+
+    @property
+    def fields(self):
+        return self._fields
+
+    @property
+    def combined_fields(self):
+        return self._combined_fields
 
     def prepare_mapper(self):
         _add_children = self._children.add
