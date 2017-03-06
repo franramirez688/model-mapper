@@ -111,7 +111,7 @@ class ModelMapper(object):
 
     @property
     def children(self):
-        return self.children
+        return self._children
 
     @property
     def fields(self):
