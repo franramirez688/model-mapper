@@ -50,7 +50,7 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
     ])
     def test_filter_origin_access(self, _, access, link_name):
         filtered_values = list(self._model_mapper.filter_origin_access(access))
-        expected_values = [self._model_mapper[link_name]]
+        expected_values = [(link_name, self._model_mapper[link_name])]
         self.assertEqual(expected_values, filtered_values)
 
     @parameterized.expand([
@@ -59,5 +59,5 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
     ])
     def test_filter_destination_access(self, _, access, link_name):
         filtered_values = list(self._model_mapper.filter_destination_access(access))
-        expected_values = [self._model_mapper[link_name]]
+        expected_values = [(link_name, self._model_mapper[link_name])]
         self.assertEqual(expected_values, filtered_values)

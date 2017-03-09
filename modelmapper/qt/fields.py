@@ -28,14 +28,21 @@ class QWidgetAccessor(FieldAccessor):
     def value_changed(self):
         pass
 
-    def publish_changes(self, value):
+    def publish_changes(self, *args, **kwargs):
         pubsub.publish('widget_value_changed', self)
 
     def clear_error(self):
-        pass
+        self.widget.setStyleSheet('border: 1px solid lightgray;'
+                                  'border-radius: 5px;')
+        self.widget.setToolTip('')
+        self.widget.setStatusTip('')
 
     def show_error(self, error):
-        pass
+        error = "ERROOOR" if isinstance(error, dict) else error
+        self.widget.setStyleSheet('border: 1px solid red;'
+                                  'border-radius: 5px')
+        self.widget.setStatusTip(error)
+        self.widget.setToolTip(error)
 
 
 class QLineEditAccessor(QWidgetAccessor):
@@ -50,18 +57,6 @@ class QLineEditAccessor(QWidgetAccessor):
     @property
     def value_changed(self):
         return self.widget.textEdited
-
-    def clear_error(self):
-        self.widget.setStyleSheet('border: 1px solid lightgray;'
-                                  'border-radius: 5px;')
-        self.widget.setToolTip('')
-        self.widget.setStatusTip('')
-
-    def show_error(self, error):
-        self.widget.setStyleSheet('border: 1px solid red;'
-                                  'border-radius: 5px')
-        self.widget.setStatusTip(error)
-        self.widget.setToolTip(error)
 
 
 class MemoryListAccessor(QWidgetAccessor):
@@ -95,20 +90,6 @@ class Autocomplete(QLineEditAccessor):
     @property
     def value_changed(self):
         return self.widget.selected
-
-    def clear_error(self):
-        self.widget.setStyleSheet('border: 1px solid lightgray;'
-                                  'border-radius: 5px;')
-        self.widget.setToolTip('')
-        self.widget.setStatusTip('')
-
-    def show_error(self, error):
-        error = "ERROOOR" if isinstance(error, dict) else error
-        self.widget.setStyleSheet('border: 1px solid red;'
-                                  'border-radius: 5px')
-        self.widget.setStatusTip(error)
-        self.widget.setToolTip(error)
-
 
 
 class LineDate(QLineEditAccessor):
@@ -150,6 +131,10 @@ class SpinBox(QWidgetAccessor):
         else:
             widget.setValue(float(value) if '.' in value else int(value))
 
+    @property
+    def value_changed(self):
+        return self.widget.valueChanged
+
 
 class Integer(QLineEditAccessor):
 
@@ -175,3 +160,7 @@ class PlainTextEdit(QWidgetAccessor):
 
     def get_value(self):
         return self.widget.toPlainText() or None
+
+    @property
+    def value_changed(self):
+        return self.widget.textChanged

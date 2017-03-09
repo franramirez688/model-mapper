@@ -25,16 +25,25 @@ class ListMapper(Mapper): pass
 
 class CombinedField(object):
 
-    def __init__(self, *field_accesses, **info):
-        self.field_accesses = field_accesses
+    def __init__(self, *nested_accesses, **info):
+        self.nested_accesses = nested_accesses
         self.name = info.get('name', '')
         self.validator = info.get('validator', '')
-        self._fields = None
+        self._nested_fields = set()
 
     @property
-    def fields(self):
-        return self._fields
+    def nested_fields(self):
+        return self._nested_fields
 
-    @fields.setter
-    def fields(self, val):
-        self._fields = val
+    @nested_fields.setter
+    def nested_fields(self, val):
+        self._nested_fields = val
+
+    def nested_orig_accesses(self):
+        return (field[0] for field in self.nested_fields if isinstance(field, (Field, tuple)))
+
+    def nested_dest_accesses(self):
+        return (field[1] for field in self.nested_fields if isinstance(field, (Field, tuple)))
+
+    def init_nested_fields(self, model_accessor):
+        self.nested_fields = set([model_accessor[access] for access in self.nested_accesses])
