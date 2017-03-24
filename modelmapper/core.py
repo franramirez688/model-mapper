@@ -2,14 +2,14 @@ import itertools
 
 from modelmapper import exceptions as exc, compat
 from modelmapper.accessors import ModelAccessor, FieldAccessor
-from modelmapper.declarations import Mapper, UniformMapper, ListMapper, Field, CombinedField
+from modelmapper.declarations import Mapper, UniformMapper, ListMapper, CombinedField
 
 
 class ModelMapper(object):
     """Linker class between an origin model and a destination one
     """
 
-    def __init__(self, origin_model, destination_model, mapper, origin_access=None, destination_access=None):
+    def __init__(self, origin_model, destination_model, mapper, **info):
         self._origin_model = origin_model if origin_model is None else dict()
         self._destination_model = destination_model
         self._mapper = mapper  # MutableMapping()
@@ -23,38 +23,31 @@ class ModelMapper(object):
         self._fields = set()  # set([(link_name, <obj ModelMapper>),])
         self._combined_fields = set()  # set([(link_name, <obj ModelMapper>),])
 
-        self._origin_access = origin_access
-        self._destination_access = destination_access
-
-    @staticmethod
-    def factory(orig_model, dest_model, mapper, origin_access=None, destination_access=None):
-        # if isinstance(orig_model, list) and isinstance(dest_model, list):
-        #     return ListModelMapper(orig_model, dest_model, mapper,
-        #                            origin_access=origin_access, destination_access=destination_access)
-        if isinstance(orig_model, list) or isinstance(dest_model, list):
-            return UniformListModelMapper(orig_model, dest_model, mapper,
-                                          origin_access=origin_access, destination_access=destination_access)
-        else:
-            return ModelMapper(orig_model, dest_model, mapper,
-                               origin_access=origin_access, destination_access=destination_access)
+        self._info = ModelAccessor(info)
 
     def create_child_by_declaration_type(self, declaration):
-        orig_access = declaration.origin_access
-        dest_access = declaration.destination_access
+
+        def _get_complete_info_and_parent_models():
+            info = declaration.info
+            orig_access = declaration.origin_access
+            dest_access = declaration.destination_access
+
+            info['origin_access'] = orig_access
+            info['destination_access'] = dest_access
+
+            orig_model = self._origin_accessor.get(orig_access) if orig_access else self._origin_accessor.model
+            dest_model = self._destination_accessor.get(dest_access) if dest_access \
+                                                                     else self._destination_accessor.model
+
+            return info, orig_model, dest_model
+
         mapper = declaration.mapper
+        info, orig_model, dest_model = _get_complete_info_and_parent_models()
 
-        orig_model = self._origin_accessor.get(orig_access) if orig_access else self._origin_accessor.model
-        dest_model = self._destination_accessor.get(dest_access) if dest_access else self._destination_accessor.model
-
-        # if isinstance(declaration, ListMapper):
-        #     return ListModelMapper(orig_model, dest_model, mapper,
-        #                            origin_access=orig_access, destination_access=dest_access)
         if isinstance(declaration, UniformMapper):
-            return UniformListModelMapper(orig_model, dest_model, mapper,
-                                          origin_access=orig_access, destination_access=dest_access)
+            return UniformListModelMapper(orig_model, dest_model, mapper, **info)
         elif isinstance(declaration, Mapper):
-            return ModelMapper(orig_model, dest_model, mapper,
-                               origin_access=orig_access, destination_access=dest_access)
+            return ModelMapper(orig_model, dest_model, mapper, **info)
 
     @property
     def origin_model(self):
@@ -81,12 +74,16 @@ class ModelMapper(object):
             model_mapper.destination_model = self._destination_accessor[model_mapper.destination_access]
 
     @property
+    def info(self):
+        return self._info
+
+    @property
     def origin_access(self):
-        return self._origin_access
+        return self._info.get('origin_access')
 
     @property
     def destination_access(self):
-        return self._destination_access
+        return self._info.get('destination_access')
 
     @property
     def mapper(self):
@@ -241,14 +238,13 @@ class ModelMapper(object):
 
 class UniformListModelMapper(ModelMapper):
 
-    def __init__(self, origin_model, destination_model, mapper, origin_access=None, destination_access=None):
+    def __init__(self, origin_model, destination_model, mapper, **info):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
 
         self._orig_data = origin_model or []
         self._index = 0
         origin_model = origin_model[0] if len(origin_model) > 0 else dict()
-        super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper,
-                                                     origin_access=origin_access, destination_access=destination_access)
+        super(UniformListModelMapper, self).__init__(origin_model, destination_model, mapper, **info)
 
     @property
     def orig_data(self):
@@ -334,10 +330,9 @@ class UniformListModelMapper(ModelMapper):
 #
 #     LINK = '[{}].{}'
 #
-#     def __init__(self, origin_model, destination_model, mapper, origin_access=None, destination_access=None):
+#     def __init__(self, origin_model, destination_model, mapper, info=info):
 #         origin_model = origin_model if origin_model is None else list()
-#         super(ListModelMapper, self).__init__(origin_model, destination_model, mapper,
-#                                               origin_access=origin_access, destination_access=destination_access)
+#         super(ListModelMapper, self).__init__(origin_model, destination_model, mapper, info=info)
 #
 #     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
 #         link = ListModelMapper.LINK.format

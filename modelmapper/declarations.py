@@ -1,35 +1,59 @@
 from collections import namedtuple
 
-
-class Field(namedtuple('Field', 'origin_access destination_access name validator')):
-
-    __slots__ = ()
-
-    def __new__(cls, origin_access, destination_access, name=None, validator=None):
-        return super(Field, cls).__new__(cls, origin_access, destination_access, name, validator)
+from modelmapper.exceptions import DeclarationError
 
 
-class Mapper(namedtuple('Mapper', 'origin_access destination_access mapper name validator')):
+class Field(namedtuple('Field', 'origin_access destination_access info')):
 
     __slots__ = ()
 
-    def __new__(cls, origin_access, destination_access, mapper, name=None, validator=None):
-        return super(Mapper, cls).__new__(cls, origin_access, destination_access, mapper, name, validator)
+    def __new__(cls, origin_access, destination_access, info=None):
+        info = info or dict(name=None, validator=None, help_text=None)
+        return super(Field, cls).__new__(cls, origin_access, destination_access, info)
+
+    def __getattr__(self, item):
+        try:
+            return self.info[item]
+        except KeyError:
+            raise DeclarationError("This attribute has not been defined in Field declaration")
 
 
-class UniformMapper(Mapper): pass
+class Mapper(namedtuple('Mapper', 'origin_access destination_access mapper info')):
+
+    __slots__ = ()
+
+    def __new__(cls, origin_access, destination_access, mapper, info=None):
+        info = info or dict(name=None, validator=None, help_text=None)
+        return super(Mapper, cls).__new__(cls, origin_access, destination_access, mapper, info)
+
+    def __getattr__(self, item):
+        try:
+            return self.info[item]
+        except KeyError:
+            raise DeclarationError("This attribute has not been defined in "
+                                   "{class_name} declaration".format(class_name=self.__class__.__name__))
 
 
-class ListMapper(Mapper): pass
+class UniformMapper(Mapper):
+    pass
+
+
+class ListMapper(Mapper):
+    pass
 
 
 class CombinedField(object):
 
     def __init__(self, *nested_accesses, **info):
         self.nested_accesses = nested_accesses
-        self.name = info.get('name', '')
-        self.validator = info.get('validator', '')
+        self.info = info
         self._nested_fields = set()
+
+    def __getattr__(self, item):
+        try:
+            return self.info[item]
+        except KeyError:
+            raise DeclarationError("This attribute has not been defined in CombinedField declaration")
 
     @property
     def nested_fields(self):
