@@ -47,9 +47,11 @@ class CombinedField(_UtilsMixin):
         self.info = info
         self.nested_fields = set()
 
+    @property
     def nested_orig_accesses(self):
         return (field[0] for field in self.nested_fields if isinstance(field, (Field, tuple)))
 
+    @property
     def nested_dest_accesses(self):
         return (field[1] for field in self.nested_fields if isinstance(field, (Field, tuple)))
 
