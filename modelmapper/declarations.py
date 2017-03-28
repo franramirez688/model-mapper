@@ -1,5 +1,3 @@
-
-
 from modelmapper.exceptions import DeclarationError
 
 

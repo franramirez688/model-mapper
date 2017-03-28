@@ -162,12 +162,14 @@ class SpecialListAccessor(object):
 
 
 class FieldAccessor(object):
+    __slots__ = ('access', '_parent_accessor', 'info')
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, access, parent_accessor=None):
-        self.access = access
+    def __init__(self, access, parent_accessor=None, **info):
         self._parent_accessor = parent_accessor
+        self.access = access
+        self.info = info
 
     @property
     def field(self):
