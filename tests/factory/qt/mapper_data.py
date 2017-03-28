@@ -1,3 +1,4 @@
+from modelmapper.declarations import Mapper, Field
 from modelmapper.qt.fields import QLineEditAccessor
 
 
@@ -25,25 +26,17 @@ def get_child_x_mapper(x):
     }
 
 
-def get_d_list_mapper():
-    return {
-        'a_link': ('a', 'val_a'),
-        'aa_link': ('aa', 'val_aa'),
-        'aaa_link': ('aaa', 'val_aaa')
-    }
-
-
 def get_d_mapper():
     return {
-        'expediente_link': ('c[0]', 'val_c[0]', get_child_x_mapper('a')),
-        'masa_bruta_link': ('c[1]', 'val_c[1]', get_child_x_mapper('b')),
-        'nombre_link': ('cc', 'val_cc'),
+        'expediente_link': Mapper('c[0]', 'val_c[0]', get_child_x_mapper('a')),
+        'masa_bruta_link': Mapper('c[1]', 'val_c[1]', get_child_x_mapper('b')),
+        'nombre_link': Field('cc', 'val_cc'),
     }
 
 
 def get_model_mapper():
     return {
-        'expediente_link': ('expediente', String('expediente')),
-        'masa_bruta_link': ('masa_bruta', Integer('masa_bruta')),
-        'nombre_link': ('nombre', String('nombre'))
+        'expediente_link': Field('expediente', String('expediente')),
+        'masa_bruta_link': Field('masa_bruta', Integer('masa_bruta')),
+        'nombre_link': Field('nombre', String('nombre'))
     }

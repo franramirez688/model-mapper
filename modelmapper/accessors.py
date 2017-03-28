@@ -1,5 +1,5 @@
 import re
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
 from modelmapper import exceptions as exc
 import modelmapper.compat as compat
@@ -26,6 +26,7 @@ def handle_exceptions(f):
 
 
 class ModelAccessor(object):
+    __slots__ = ('_model',)
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
     SPECIAL_LIST_INDICATOR = "[*]"
@@ -186,8 +187,10 @@ class FieldAccessor(object):
             return
         raise exc.FieldAccessorError("{} type must be ModelAccessor".format(accessor))
 
+    @abstractmethod
     def set_value(self, value):
-        raise NotImplemented
+        pass
 
+    @abstractmethod
     def get_value(self):
-        raise NotImplemented
+        pass

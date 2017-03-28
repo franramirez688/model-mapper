@@ -8,6 +8,9 @@ from modelmapper.declarations import Mapper, UniformMapper, ListMapper, Combined
 class ModelMapper(object):
     """Linker class between an origin model and a destination one
     """
+    __slots__ = ('_origin_model', '_destination_model', '_mapper', '_mapper_accessor',
+                 '_origin_accessor', '_destination_accessor', '_children', '_fields',
+                 '_combined_fields', '_info')
 
     def __init__(self, origin_model, destination_model, mapper, **info):
         self._origin_model = origin_model if origin_model is None else dict()
@@ -19,9 +22,9 @@ class ModelMapper(object):
         self._destination_accessor = ModelAccessor(destination_model)
 
         # Variable to record tuple(orig_access, dest_access, model_mapper_obj)
-        self._children = set()  # set([(link_name, <obj ModelMapper>),])
-        self._fields = set()  # set([(link_name, <obj ModelMapper>),])
-        self._combined_fields = set()  # set([(link_name, <obj ModelMapper>),])
+        self._children = set()  # set([(field_name, <obj ModelMapper>),])
+        self._fields = set()  # set([(field_name, <obj ModelMapper>),])
+        self._combined_fields = set()  # set([(field_name, <obj ModelMapper>),])
 
         self._info = ModelAccessor(info)
 
@@ -123,22 +126,21 @@ class ModelMapper(object):
         _add_field = self._fields.add
         _add_combined_field = self._combined_fields.add
         create_child_by_declaration = self.create_child_by_declaration_type
-        new_links = dict()
+        updated_fields = dict()
 
-        for link_name, declaration_type in self._mapper_accessor:
+        for field_name, declaration_type in self._mapper_accessor:
             if isinstance(declaration_type, (Mapper, UniformMapper, ListMapper)):
                 model_mapper = create_child_by_declaration(declaration_type)
-                new_links[link_name] = model_mapper
+                updated_fields[field_name] = model_mapper
                 model_mapper.prepare_mapper()
-                _add_children((link_name, model_mapper))
+                _add_children((field_name, model_mapper))
             elif isinstance(declaration_type, CombinedField):
-                declaration_type.init_nested_fields(self)
-                _add_combined_field((link_name, declaration_type))
+                _add_combined_field((field_name, declaration_type))
             else:
-                _add_field((link_name, declaration_type))
+                _add_field((field_name, declaration_type))
 
         # Update mapper model to change Mapper declarations to ModelMapper classes
-        self._mapper_accessor.model.update(new_links)
+        self._mapper_accessor.model.update(updated_fields)
 
     def destination_to_origin(self):
         orig_accessor = self._origin_accessor
@@ -148,8 +150,8 @@ class ModelMapper(object):
             child.destination_to_origin()
 
         for _, field in self._fields:
-            orig_access = field[0]
-            dest_access = field[1]
+            orig_access = field.origin_access
+            dest_access = field.destination_access
             try:
                 dest_field_value = dest_accessor[dest_access]
             except exc.ModelAccessorAttributeError:
@@ -165,8 +167,8 @@ class ModelMapper(object):
             child.origin_to_destination()
 
         for _, field in self._fields:
-            orig_access = field[0]
-            dest_access = field[1]
+            orig_access = field.origin_access
+            dest_access = field.destination_access
             try:
                 orig_field_value = orig_accessor[orig_access]
             except exc.ModelAccessorAttributeError:
@@ -179,34 +181,37 @@ class ModelMapper(object):
         orig_accessor = self._origin_accessor
         ret = {}
 
-        for link_name, link_value in self._mapper_accessor:
-            if isinstance(link_value, ModelMapper):
-                ret[link_name] = link_value.to_dict(only_origin=only_origin, only_destination=only_destination)
-            elif only_origin:
-                ret[link_name] = orig_accessor[link_value[0]]
+        for field_name, field in self._mapper_accessor:
+            if isinstance(field, ModelMapper):
+                ret[field_name] = field.to_dict(only_origin=only_origin, only_destination=only_destination)
+                continue
+            orig_access = field.origin_access
+            dest_access = field.destination_access
+            if only_origin:
+                ret[field_name] = orig_accessor[orig_access]
             elif only_destination:
-                ret[link_name] = dest_accessor[link_value[1]]
+                ret[field_name] = dest_accessor[dest_access]
             else:
-                ret[link_name] = (orig_accessor[link_value[0]], dest_accessor[link_value[1]])
+                ret[field_name] = (orig_accessor[orig_access], dest_accessor[dest_access])
         return ret
 
-    def _filter_fields_by_access(self, access, field_index):
+    def _filter_fields_by_access(self, access, field_source):
 
         def compare_access(decl):
-            orig_or_dest = decl[1][field_index]  # (link_name, Field)
+            orig_or_dest = getattr(decl[1], field_source)  # (field_name, Field)
             orig_or_dest_access = orig_or_dest.access if isinstance(orig_or_dest, FieldAccessor) else orig_or_dest
             return access == orig_or_dest_access
 
         return compat.filter(compare_access, self._fields)
 
     def filter_fields_by_orig_access(self, access):
-        return self._filter_fields_by_access(access, 0)
+        return self._filter_fields_by_access(access, 'origin_access')
 
     def filter_fields_by_dest_access(self, access):
-        return self._filter_fields_by_access(access, 1)
+        return self._filter_fields_by_access(access, 'destination_access')
 
     def filter_children_by_orig_access(self, access):
-        return compat.filter(lambda decl: access == decl[1].origin_access,  # (link_name, ModelMapper)
+        return compat.filter(lambda decl: access == decl[1].origin_access,  # (field_name, ModelMapper)
                              self._children)
 
     def filter_children_by_dest_access(self, access):
@@ -237,6 +242,9 @@ class ModelMapper(object):
 
 
 class UniformListModelMapper(ModelMapper):
+    __slots__ = ('_origin_model', '_destination_model', '_mapper', '_mapper_accessor',
+                 '_origin_accessor', '_destination_accessor', '_children', '_fields',
+                 '_combined_fields', '_info', '_orig_data', '_index')
 
     def __init__(self, origin_model, destination_model, mapper, **info):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"
@@ -313,13 +321,13 @@ class UniformListModelMapper(ModelMapper):
         ret = [dict() for _ in range(len(model))]
         current_index = self._index
 
-        for link_name, link_value in self._mapper_accessor:
+        for field_name, field in self._mapper_accessor:
             for index, _ in enumerate(model):
                 update_index(index)
-                if isinstance(link_value, ModelMapper):
-                    ret[index][link_name] = link_value.to_dict(only_origin=True)
+                if isinstance(field, ModelMapper):
+                    ret[index][field_name] = field.to_dict(only_origin=True)
                 else:
-                    ret[index][link_name] = self._origin_accessor[link_value[0]]
+                    ret[index][field_name] = self._origin_accessor[field.origin_access]
         update_index(current_index)
         return ret
 
@@ -337,14 +345,14 @@ class UniformListModelMapper(ModelMapper):
 #     def _values_updater(self, func_name, accessor_to_set, accessor_to_get, setter_index, getter_index):
 #         link = ListModelMapper.LINK.format
 #
-#         for _, link_value in self._mapper_accessor:
+#         for _, field in self._mapper_accessor:
 #             for index, _ in enumerate(accessor_to_get.model):
-#                 if isinstance(link_value, ModelMapper):
-#                     orig_to_dest_or_vice_versa = getattr(link_value, func_name)
+#                 if isinstance(field, ModelMapper):
+#                     orig_to_dest_or_vice_versa = getattr(field, func_name)
 #                     orig_to_dest_or_vice_versa()
 #                 else:
-#                     item_to_set = link(index, link_value[setter_index])
-#                     item_to_get = link(index, link_value[getter_index])
+#                     item_to_set = link(index, field[setter_index])
+#                     item_to_get = link(index, field[getter_index])
 #                     try:
 #                         accessor_to_set[item_to_set] = accessor_to_get[item_to_get]
 #                     except exc.ModelAccessorAttributeError:
@@ -364,12 +372,12 @@ class UniformListModelMapper(ModelMapper):
 #         ret = [dict() for _ in range(len(model))]
 #         link = ListModelMapper.LINK.format
 #
-#         for link_name, link_value in self._mapper_accessor:
+#         for field_name, field in self._mapper_accessor:
 #             for index, _ in enumerate(model):
-#                 if isinstance(link_value, ModelMapper):
-#                     ret[index][link_name] = link_value.to_dict(only_destination=True)
+#                 if isinstance(field, ModelMapper):
+#                     ret[index][field_name] = field.to_dict(only_destination=True)
 #                 else:
-#                     ret[index][link_name] = dest_accessor[link(index, link_value[1])]
+#                     ret[index][field_name] = dest_accessor[link(index, field.destination_access)]
 #         return ret
 #
 #     def _to_dict_only_origin(self):
@@ -378,10 +386,10 @@ class UniformListModelMapper(ModelMapper):
 #         ret = [dict() for _ in range(len(model))]
 #         link = ListModelMapper.LINK.format
 #
-#         for link_name, link_value in self._mapper_accessor:
+#         for field_name, field in self._mapper_accessor:
 #             for index, _ in enumerate(model):
-#                 if isinstance(link_value, ModelMapper):
-#                     ret[index][link_name] = link_value.to_dict(only_origin=True)
+#                 if isinstance(field, ModelMapper):
+#                     ret[index][field_name] = field.to_dict(only_origin=True)
 #                 else:
-#                     ret[index][link_name] = orig_accessor[link(index, link_value[0])]
+#                     ret[index][field_name] = orig_accessor[link(index, field.origin_access)]
 #         return ret
