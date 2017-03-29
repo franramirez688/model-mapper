@@ -13,7 +13,7 @@ class _UtilsMixin(object):
 
 
 class Field(_UtilsMixin):
-    __slots__ = ('origin_access', 'destination_access', 'info')
+    __slots__ = ('origin_access', 'destination_access')
 
     def __init__(self, origin_access, destination_access, **info):
         self.origin_access = origin_access
@@ -22,7 +22,7 @@ class Field(_UtilsMixin):
 
 
 class Mapper(_UtilsMixin):
-    __slots__ = ('origin_access', 'destination_access', 'mapper', 'info')
+    __slots__ = ('origin_access', 'destination_access', 'mapper')
 
     def __init__(self, origin_access, destination_access, mapper, **info):
         self.origin_access = origin_access
@@ -32,15 +32,15 @@ class Mapper(_UtilsMixin):
 
 
 class UniformMapper(Mapper):
-    __slots__ = ('origin_access', 'destination_access', 'mapper', 'info')
+    __slots__ = ()
 
 
 class ListMapper(Mapper):
-    __slots__ = ('origin_access', 'destination_access', 'mapper', 'info')
+    __slots__ = ()
 
 
 class CombinedField(_UtilsMixin):
-    __slots__ = ('nested_accesses', 'nested_fields', 'info')
+    __slots__ = ('nested_accesses', 'nested_fields')
 
     def __init__(self, *nested_accesses, **info):
         self.nested_accesses = nested_accesses

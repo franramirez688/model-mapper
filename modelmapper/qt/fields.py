@@ -9,7 +9,7 @@ from modelmapper import pubsub
 
 
 class QWidgetAccessor(FieldAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     @property
     def widget(self):
@@ -46,7 +46,7 @@ class QWidgetAccessor(FieldAccessor):
 
 
 class QLineEditAccessor(QWidgetAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         return self.widget.text()
@@ -61,7 +61,7 @@ class QLineEditAccessor(QWidgetAccessor):
 
 
 class MemoryListAccessor(QWidgetAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         return [row[1] for row in self.widget.model().get_objects()]
@@ -71,7 +71,7 @@ class MemoryListAccessor(QWidgetAccessor):
 
 
 class String(QLineEditAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         value = super(String, self).get_value()
@@ -79,7 +79,7 @@ class String(QLineEditAccessor):
 
 
 class Autocomplete(QLineEditAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         value = self.widget.value
@@ -97,7 +97,7 @@ class Autocomplete(QLineEditAccessor):
 
 
 class LineDate(QLineEditAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info', 'from_format')
+    __slots__ = ('from_format',)
 
     def __init__(self, access, parent_accessor=None, from_format='%Y-%m-%dT%H:%M:%S', **info):
         self.from_format = from_format
@@ -113,7 +113,7 @@ class LineDate(QLineEditAccessor):
 
 
 class CheckBoxList(QWidgetAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         return [item.text() for _, item in self.widget.checkedItems()]
@@ -123,7 +123,7 @@ class CheckBoxList(QWidgetAccessor):
 
 
 class SpinBox(QWidgetAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         return self.widget.value() if self.widget.text() else None
@@ -144,7 +144,7 @@ class SpinBox(QWidgetAccessor):
 
 
 class Integer(QLineEditAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def get_value(self):
         value = super(Integer, self).get_value()
@@ -152,7 +152,7 @@ class Integer(QLineEditAccessor):
 
 
 class ReadOnlyAccessor(FieldAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def set_value(self, value):
         pass
@@ -162,7 +162,7 @@ class ReadOnlyAccessor(FieldAccessor):
 
 
 class PlainTextEdit(QWidgetAccessor):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ()
 
     def set_value(self, value):
         val = value if value is not None else ''

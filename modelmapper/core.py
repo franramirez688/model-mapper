@@ -242,9 +242,7 @@ class ModelMapper(object):
 
 
 class UniformListModelMapper(ModelMapper):
-    __slots__ = ('_origin_model', '_destination_model', '_mapper', '_mapper_accessor',
-                 '_origin_accessor', '_destination_accessor', '_children', '_fields',
-                 '_combined_fields', '_info', '_orig_data', '_index')
+    __slots__ = ('_orig_data', '_index')
 
     def __init__(self, origin_model, destination_model, mapper, **info):
         assert isinstance(origin_model, list), "Origin model must be a list with uniform data"

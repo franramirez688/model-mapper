@@ -162,7 +162,7 @@ class SpecialListAccessor(object):
 
 
 class FieldAccessor(object):
-    __slots__ = ('access', '_parent_accessor', 'info')
+    __slots__ = ('access', '_parent_accessor', 'info', '__weakref__')
 
     __metaclass__ = ABCMeta
 
