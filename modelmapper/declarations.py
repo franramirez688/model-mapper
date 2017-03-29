@@ -8,8 +8,9 @@ class _UtilsMixin(object):
         try:
             return self.info[item]
         except KeyError:
-            raise DeclarationError("This attribute has not been defined in "
-                                   "{class_name} declaration".format(class_name=self.__class__.__name__))
+            raise DeclarationError("{item} has not been defined in 'info' variable of"
+                                   "{class_name} declaration".format(item=item,
+                                                                     class_name=self.__class__.__name__))
 
 
 class Field(_UtilsMixin):
