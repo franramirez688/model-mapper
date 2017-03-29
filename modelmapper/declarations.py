@@ -49,11 +49,11 @@ class CombinedField(_UtilsMixin):
 
     @property
     def nested_orig_accesses(self):
-        return (field[0] for field in self.nested_fields if isinstance(field, (Field, tuple)))
+        return (field.origin_access for field in self.nested_fields if isinstance(field, (Field, tuple)))
 
     @property
     def nested_dest_accesses(self):
-        return (field[1] for field in self.nested_fields if isinstance(field, (Field, tuple)))
+        return (field.destination_access for field in self.nested_fields if isinstance(field, (Field, tuple)))
 
     def init_nested_fields(self, model_accessor):
         self.nested_fields = set([model_accessor[access] for access in self.nested_accesses])
