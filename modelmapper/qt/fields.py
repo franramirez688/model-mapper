@@ -9,6 +9,7 @@ from modelmapper import pubsub
 
 
 class QWidgetAccessor(FieldAccessor):
+    __slots__ = ()
 
     @property
     def widget(self):
@@ -28,28 +29,8 @@ class QWidgetAccessor(FieldAccessor):
     def value_changed(self):
         pass
 
-    def publish_changes(self, value):
+    def publish_changes(self, *args, **kwargs):
         pubsub.publish('widget_value_changed', self)
-
-    def clear_error(self):
-        pass
-
-    def show_error(self, error):
-        pass
-
-
-class QLineEditAccessor(QWidgetAccessor):
-
-    def get_value(self):
-        return self.widget.text()
-
-    def set_value(self, value):
-        val = compat.unicode(value) if value else ''
-        self.widget.setText(val)
-
-    @property
-    def value_changed(self):
-        return self.widget.textEdited
 
     def clear_error(self):
         self.widget.setStyleSheet('border: 1px solid lightgray;'
@@ -64,7 +45,23 @@ class QLineEditAccessor(QWidgetAccessor):
         self.widget.setToolTip(error)
 
 
+class QLineEditAccessor(QWidgetAccessor):
+    __slots__ = ()
+
+    def get_value(self):
+        return self.widget.text()
+
+    def set_value(self, value):
+        val = compat.unicode(value) if value else ''
+        self.widget.setText(val)
+
+    @property
+    def value_changed(self):
+        return self.widget.textEdited
+
+
 class MemoryListAccessor(QWidgetAccessor):
+    __slots__ = ()
 
     def get_value(self):
         return [row[1] for row in self.widget.model().get_objects()]
@@ -74,6 +71,7 @@ class MemoryListAccessor(QWidgetAccessor):
 
 
 class String(QLineEditAccessor):
+    __slots__ = ()
 
     def get_value(self):
         value = super(String, self).get_value()
@@ -81,6 +79,7 @@ class String(QLineEditAccessor):
 
 
 class Autocomplete(QLineEditAccessor):
+    __slots__ = ()
 
     def get_value(self):
         value = self.widget.value
@@ -96,26 +95,13 @@ class Autocomplete(QLineEditAccessor):
     def value_changed(self):
         return self.widget.selected
 
-    def clear_error(self):
-        self.widget.setStyleSheet('border: 1px solid lightgray;'
-                                  'border-radius: 5px;')
-        self.widget.setToolTip('')
-        self.widget.setStatusTip('')
-
-    def show_error(self, error):
-        error = "ERROOOR" if isinstance(error, dict) else error
-        self.widget.setStyleSheet('border: 1px solid red;'
-                                  'border-radius: 5px')
-        self.widget.setStatusTip(error)
-        self.widget.setToolTip(error)
-
-
 
 class LineDate(QLineEditAccessor):
+    __slots__ = ('from_format',)
 
-    def __init__(self, access, parent_accessor=None, from_format='%Y-%m-%dT%H:%M:%S'):
+    def __init__(self, access, parent_accessor=None, from_format='%Y-%m-%dT%H:%M:%S', **info):
         self.from_format = from_format
-        super(LineDate, self).__init__(access, parent_accessor=parent_accessor)
+        super(LineDate, self).__init__(access, parent_accessor=parent_accessor, **info)
 
     def set_value(self, value):
         if value and isinstance(value, compat.basestring):
@@ -127,6 +113,7 @@ class LineDate(QLineEditAccessor):
 
 
 class CheckBoxList(QWidgetAccessor):
+    __slots__ = ()
 
     def get_value(self):
         return [item.text() for _, item in self.widget.checkedItems()]
@@ -136,6 +123,7 @@ class CheckBoxList(QWidgetAccessor):
 
 
 class SpinBox(QWidgetAccessor):
+    __slots__ = ()
 
     def get_value(self):
         return self.widget.value() if self.widget.text() else None
@@ -150,8 +138,13 @@ class SpinBox(QWidgetAccessor):
         else:
             widget.setValue(float(value) if '.' in value else int(value))
 
+    @property
+    def value_changed(self):
+        return self.widget.valueChanged
+
 
 class Integer(QLineEditAccessor):
+    __slots__ = ()
 
     def get_value(self):
         value = super(Integer, self).get_value()
@@ -159,6 +152,7 @@ class Integer(QLineEditAccessor):
 
 
 class ReadOnlyAccessor(FieldAccessor):
+    __slots__ = ()
 
     def set_value(self, value):
         pass
@@ -168,6 +162,7 @@ class ReadOnlyAccessor(FieldAccessor):
 
 
 class PlainTextEdit(QWidgetAccessor):
+    __slots__ = ()
 
     def set_value(self, value):
         val = value if value is not None else ''
@@ -175,3 +170,7 @@ class PlainTextEdit(QWidgetAccessor):
 
     def get_value(self):
         return self.widget.toPlainText() or None
+
+    @property
+    def value_changed(self):
+        return self.widget.textChanged

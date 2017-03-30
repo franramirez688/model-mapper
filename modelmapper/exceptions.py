@@ -33,3 +33,7 @@ class ModelAccessorAssignmentError(ModelAccessorError):
 
 class FieldAccessorError(Exception):
     pass
+
+
+class DeclarationError(Exception):
+    pass

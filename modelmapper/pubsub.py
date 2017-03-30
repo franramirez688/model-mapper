@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import weakref
 import threading
 import contextlib
+import collections
 
 
 class ReadWriteLock:
@@ -56,27 +58,66 @@ class ReadWriteLock:
 
 
 class PubSub(object):
+    """Publish/Subscriber pattern.
+
+    Implementacion minima de patron publish/subscriber.
+
+    Se utilizan referencias debiles a las instancias suscritas.
+    Esto implica que la "desuscripcion" es automatica cuando las instancias
+    se queden sin referencias.
+    Esto permite no tener cuclos de referencias entre objetos y liberar de la
+    labor de "accounting" al codigo cliente e implementar peligrosos "__del__".
+    """
     def __init__(self):
-        self.locker = ReadWriteLock()
-        self.channels = dict()
+        self._locker = ReadWriteLock()
+        self._channels = collections.defaultdict(weakref.WeakKeyDictionary)
 
     def subscribe(self, method, topic):
-        with self.locker.write_lock():
-            try:
-                channel = self.channels[topic]
-            except KeyError:
-                channel = self.channels[topic] = set()
-            channel.add(method)
+        """Suscripcion a un 'topic'.
+
+        "method": metodo de una instancia.
+            Tiene que ser un metodo "normal.
+            i.e.: No puede ser "lambda", "staticmethod", ni "classmethod".
+
+        "topic": string. "topic" a suscribirse.
+        """
+        with self._locker.write_lock():
+            self._channels[topic][method.__self__] = method.__name__
 
     def unsubscribe(self, method, topic):
-        with self.locker.write_lock():
-            if topic in self.channels:
-                self.channels[topic].remove(method)
+        """Suscripcion a un 'topic'.
+
+        "method": metodo de una instancia previamente suscrita.
+
+        "topic": string. "topic".
+        """
+        with self._locker.write_lock():
+            if topic in self._channels:
+                del self._channels[topic][method.__self__]
 
     def publish(self, topic, data=None):
-        with self.locker.read_lock():
-            for client in self.channels[topic]:
-                client(topic, data)
+        """Publicacion de un "topic".
+
+        "topic": string. Nombre del "topic".
+
+        "data": object. Por defecto None.
+            Argumentos a pasar a cada metodo de cada instancia subscrita a "topic".
+
+        El orden de invocacion de los suscriptores es arbitrario y no se debe
+        depender del mismo.
+
+        Durante la recepcion del mensaje no se puede realizar invocar a
+        "subscribe" ni "unsubscribe". Si se hace, se producira un deadlock.
+        """
+        with self._locker.read_lock():
+            slot = self._channels[topic]
+            for obj in slot:
+                getattr(obj, slot[obj])(topic, data)
+
+    # def dumper(self):
+    #     foo = self._channels
+    #     for item in foo:
+    #         print(item, foo[item], len(foo[item]))
 
 
 __manager = PubSub()
@@ -84,7 +125,3 @@ __manager = PubSub()
 subscribe = __manager.subscribe
 unsubscribe = __manager.unsubscribe
 publish = __manager.publish
-
-
-if __name__ == '__main__':
-    pass

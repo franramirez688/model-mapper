@@ -1,9 +1,8 @@
 import re
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
-from modelmapper import exceptions
-from modelmapper.compat import filter, iteritems
-
+from modelmapper import exceptions as exc
+import modelmapper.compat as compat
 
 def handle_exceptions(f):
 
@@ -13,20 +12,21 @@ def handle_exceptions(f):
         try:
             return f(*args, **kwargs)
         except AttributeError:
-            raise exceptions.ModelAccessorAttributeError(
+            raise exc.ModelAccessorAttributeError(
                 "{root} has not the attribute {attr}".format(root=root, attr=attr))
         except IndexError:
-            raise exceptions.ModelAccessorIndexError(
+            raise exc.ModelAccessorIndexError(
                 "Not exist the index {index} in {root} object".format(index=attr, root=root))
         except KeyError:
-            raise exceptions.ModelAccessorKeyError(
+            raise exc.ModelAccessorKeyError(
                 "{root} has not the key {attr}".format(root=root, attr=attr))
         except Exception as e:
-            raise exceptions.ModelAccessorError(str(e))
+            raise exc.ModelAccessorError(str(e))
     return handle
 
 
 class ModelAccessor(object):
+    __slots__ = ('_model',)
 
     SPLIT_ACCESSOR_REGEX = re.compile(r"[.\[\]]+")
     SPECIAL_LIST_INDICATOR = "[*]"
@@ -39,6 +39,44 @@ class ModelAccessor(object):
         """
         self._model = model
 
+    def __iter__(self):
+        if isinstance(self._model, dict):
+            return compat.iteritems(self._model)
+        else:
+            try:
+                return iter(self._model)
+            except TypeError:
+                raise exc.ModelAccessorError("Model {} object is not iterable")
+
+    def __getitem__(self, item):
+        if isinstance(item, FieldAccessor):
+            if item.parent_accessor is None:
+                item.parent_accessor = self
+            return item.get_value()
+        elif self.SPECIAL_LIST_INDICATOR in item:
+            return SpecialListAccessor.get_item(self, item)
+        else:
+            return self._get_item_value(item)
+
+    def __setitem__(self, item, value):
+        if isinstance(item, FieldAccessor):
+            if item.parent_accessor is None:
+                item.parent_accessor = self
+            item.set_value(value)
+        elif self.SPECIAL_LIST_INDICATOR in item:
+            SpecialListAccessor.set_item(self, item, value)
+        else:
+            root_obj, attr = self._get_root_obj_and_attr(item)
+            self._set_item(root_obj, attr, value)
+
+    def __contains__(self, item):
+        try:
+            self.__getitem__(item)
+        except exc.ModelAccessorError:
+            return False
+        else:
+            return True
+
     @property
     def model(self):
         return self._model
@@ -46,12 +84,12 @@ class ModelAccessor(object):
     @staticmethod
     def split(name, pattern=None, **kwargs):
         pattern = re.compile(pattern) if pattern else ModelAccessor.SPLIT_ACCESSOR_REGEX
-        return filter(None, pattern.split(name, **kwargs))  # delete empty strings
+        return compat.filter(None, pattern.split(name, **kwargs))  # delete empty strings
 
     def get(self, name, default=None):
         try:
             return self.__getitem__(name)
-        except exceptions.ModelAccessorError:
+        except exc.ModelAccessorError:
             return default
 
     @handle_exceptions
@@ -81,41 +119,12 @@ class ModelAccessor(object):
 
     def _get_item_value(self, item):
         split_item = item if isinstance(item, list) else list(ModelAccessor.split(item))
-        return self._get_target_item(split_item) if len(split_item) > 1 else self._get_item(self._model, split_item[0])
+        return self._get_target_item(split_item)
 
     def _get_root_obj_and_attr(self, item):
         split_item = item if isinstance(item, list) else list(ModelAccessor.split(item))
         root_obj = self._get_target_item(split_item[:-1]) if len(split_item) > 1 else self._model
         return root_obj, split_item[-1]
-
-    def __getitem__(self, item):
-        if isinstance(item, FieldAccessor):
-            if item.parent_accessor is None:
-                item.parent_accessor = self
-            return item.get_value()
-        elif self.SPECIAL_LIST_INDICATOR in item:
-            return SpecialListAccessor.get_item(self, item)
-        else:
-            return self._get_item_value(item)
-
-    def __setitem__(self, item, value):
-        if isinstance(item, FieldAccessor):
-            if item.parent_accessor is None:
-                item.parent_accessor = self
-            item.set_value(value)
-        elif self.SPECIAL_LIST_INDICATOR in item:
-            SpecialListAccessor.set_item(self, item, value)
-        else:
-            root_obj, attr = self._get_root_obj_and_attr(item)
-            self._set_item(root_obj, attr, value)
-
-    def __contains__(self, item):
-        try:
-            self.__getitem__(item)
-        except exceptions.ModelAccessorError:
-            return False
-        else:
-            return True
 
 
 class SpecialListAccessor(object):
@@ -152,26 +161,22 @@ class SpecialListAccessor(object):
                 item_accessor[list_new_items] = value
 
 
-class ModelDictAccessor(ModelAccessor):
-
-    def iteritems(self):
-        return iteritems(self._model)
-
-
 class FieldAccessor(object):
+    __slots__ = ('access', '_parent_accessor', 'info', '__weakref__')
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, access, parent_accessor=None):
-        self.access = access
+    def __init__(self, access, parent_accessor=None, **info):
         self._parent_accessor = parent_accessor
+        self.access = access
+        self.info = info
 
     @property
     def field(self):
         try:
             return self._parent_accessor[self.access]
         except Exception as e:
-            raise exceptions.FieldAccessorError(str(e))
+            raise exc.FieldAccessorError(str(e))
 
     @property
     def parent_accessor(self):
@@ -182,10 +187,12 @@ class FieldAccessor(object):
         if isinstance(accessor, ModelAccessor):
             self._parent_accessor = accessor
             return
-        raise exceptions.FieldAccessorError("{} type must be ModelAccessor".format(accessor))
+        raise exc.FieldAccessorError("{} type must be ModelAccessor".format(accessor))
 
+    @abstractmethod
     def set_value(self, value):
-        raise NotImplemented
+        pass
 
+    @abstractmethod
     def get_value(self):
-        raise NotImplemented
+        pass

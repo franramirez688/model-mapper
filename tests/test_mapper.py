@@ -1,7 +1,5 @@
 from nose_parameterized import parameterized
 
-from modelmapper.exceptions import ModelAccessorIndexError
-
 from tests.factory.mapper import ModelMapperFactoryTest
 
 
@@ -45,3 +43,21 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
     def test_to_dict_only_destination_data(self):
         self.update_destination_values()
         self.assertEqual(self.get_dict_data(only_destination=True), self._model_mapper.to_dict(only_destination=True))
+
+    @parameterized.expand([
+        ("in children", 'd', 'd_link'),
+        ("in fields", 'dddd', 'dddd_link')
+    ])
+    def test_filter_origin_access(self, _, access, link_name):
+        filtered_values = list(self._model_mapper.filter_origin_access(access))
+        expected_values = [(link_name, self._model_mapper[link_name])]
+        self.assertEqual(expected_values, filtered_values)
+
+    @parameterized.expand([
+        ("in children", 'val_d', 'd_link'),
+        ("in fields", 'val_dddd', 'dddd_link')
+    ])
+    def test_filter_destination_access(self, _, access, link_name):
+        filtered_values = list(self._model_mapper.filter_destination_access(access))
+        expected_values = [(link_name, self._model_mapper[link_name])]
+        self.assertEqual(expected_values, filtered_values)
