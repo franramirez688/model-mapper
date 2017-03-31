@@ -145,6 +145,10 @@ class ModelMapper(object):
     def destination_to_origin(self, field_name=None):
 
         def _des_to_orig(field, orig_accessor, dest_accessor):
+            if isinstance(field, ModelMapper):
+                field.destination_to_origin()
+                return
+
             orig_access = field.origin_access
             dest_access = field.destination_access
             try:
@@ -171,6 +175,10 @@ class ModelMapper(object):
     def origin_to_destination(self, field_name=None):
 
         def _orig_to_dest(field, orig_accessor, dest_accessor):
+            if isinstance(field, ModelMapper):
+                field.origin_to_destination()
+                return
+
             orig_access = field.origin_access
             dest_access = field.destination_access
             try:
