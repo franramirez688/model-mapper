@@ -61,3 +61,13 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
         filtered_values = list(self._model_mapper.filter_destination_access(access))
         expected_values = [(link_name, self._model_mapper[link_name])]
         self.assertEqual(expected_values, filtered_values)
+
+    def test_destination_to_origin_by_field_name(self):
+        self._destination_model.val_dddd = 360
+        self._model_mapper.destination_to_origin(field_name='dddd_link')
+        self.assertEqual(360, self._origin_model['dddd'])
+
+    def test_origin_to_destination_by_field_name(self):
+        self._origin_model['dddd'] = 240
+        self._model_mapper.origin_to_destination(field_name='dddd_link')
+        self.assertEqual(240, self._destination_model.val_dddd)
