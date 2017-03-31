@@ -142,14 +142,13 @@ class ModelMapper(object):
         # Update mapper model to change Mapper declarations to ModelMapper classes
         self._mapper_accessor.model.update(updated_fields)
 
-    def destination_to_origin(self):
-        orig_accessor = self._origin_accessor
-        dest_accessor = self._destination_accessor
+    def destination_to_origin(self, field_name=None):
 
-        for _, child in self._children:
-            child.destination_to_origin()
+        def _des_to_orig(field, orig_accessor, dest_accessor):
+            if isinstance(field, ModelMapper):
+                field.destination_to_origin()
+                return
 
-        for _, field in self._fields:
             orig_access = field.origin_access
             dest_access = field.destination_access
             try:
@@ -159,14 +158,27 @@ class ModelMapper(object):
             else:
                 orig_accessor[orig_access] = dest_field_value
 
-    def origin_to_destination(self):
         orig_accessor = self._origin_accessor
         dest_accessor = self._destination_accessor
 
+        if field_name:
+            _des_to_orig(self._mapper_accessor[field_name], orig_accessor, dest_accessor)
+            return
+
         for _, child in self._children:
-            child.origin_to_destination()
+            child.destination_to_origin()
 
         for _, field in self._fields:
+            _des_to_orig(field, orig_accessor, dest_accessor)
+
+
+    def origin_to_destination(self, field_name=None):
+
+        def _orig_to_dest(field, orig_accessor, dest_accessor):
+            if isinstance(field, ModelMapper):
+                field.origin_to_destination()
+                return
+
             orig_access = field.origin_access
             dest_access = field.destination_access
             try:
@@ -175,6 +187,19 @@ class ModelMapper(object):
                 pass
             else:
                 dest_accessor[dest_access] = orig_field_value
+
+        orig_accessor = self._origin_accessor
+        dest_accessor = self._destination_accessor
+
+        if field_name:
+            _orig_to_dest(self._mapper_accessor[field_name], orig_accessor, dest_accessor)
+            return
+
+        for _, child in self._children:
+            child.origin_to_destination()
+
+        for _, field in self._fields:
+            _orig_to_dest(field, orig_accessor, dest_accessor)
 
     def to_dict(self, only_origin=False, only_destination=False):
         dest_accessor = self._destination_accessor
@@ -269,10 +294,10 @@ class UniformListModelMapper(ModelMapper):
         for _, model_mapper in self._children:
             model_mapper.origin_model = self._origin_accessor[model_mapper.origin_access]
 
-    def origin_to_destination(self):
+    def origin_to_destination(self, field_name=None):
         if not self._orig_data:
             return
-        super(UniformListModelMapper, self).origin_to_destination()
+        super(UniformListModelMapper, self).origin_to_destination(field_name=field_name)
 
     def insert_data(self, data_model=None, index=-1):
         data_model = dict() if data_model is None else data_model
