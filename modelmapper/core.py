@@ -6,15 +6,22 @@ from modelmapper.declarations import Mapper, UniformMapper, ListMapper, Combined
 
 
 class ModelMapper(object):
-    """Linker class between an origin model and a destination one
+    """Main class to make the mapping and linking between an origin model and a
+    destination model
     """
     __slots__ = ('_origin_model', '_destination_model', '_mapper', '_mapper_accessor',
                  '_origin_accessor', '_destination_accessor', '_children', '_fields',
                  '_combined_fields', '_info')
 
     def __init__(self, origin_model, destination_model, mapper, **info):
-        self._origin_model = origin_model if origin_model is None else dict()
-        self._destination_model = destination_model
+        """
+        :param origin_model: any object
+        :param destination_model: any object
+        :param mapper: :class:`dict` object with mapping info
+        :param info: any additional kwargs information
+        """
+        self._origin_model = dict() if origin_model is None else origin_model
+        self._destination_model = dict() if destination_model is None else destination_model
         self._mapper = mapper  # MutableMapping()
 
         self._mapper_accessor = ModelAccessor(mapper)
@@ -29,6 +36,12 @@ class ModelMapper(object):
         self._info = ModelAccessor(info)
 
     def create_child_by_declaration_type(self, declaration):
+        """Create a new :class:`ModelMapper` object, based on a
+        :class:`Mapper` declaration
+
+        :param declaration: :class:`Mapper`
+        :return: :class:`ModelMapper`
+        """
 
         def _get_complete_info_and_parent_models():
             info = declaration.info
@@ -122,6 +135,13 @@ class ModelMapper(object):
         return self._combined_fields
 
     def prepare_mapper(self):
+        """Prepare the original mapper dictionary ``mapper`` and transform it,
+        converting :class:`Mapper` to :class:`ModelMapper`.
+
+        Here, it's saved all the model-mapper :class:`Field`, :class:`CombinedField`
+        and :class:`ModelMapper`
+        :return: None
+        """
         _add_children = self._children.add
         _add_field = self._fields.add
         _add_combined_field = self._combined_fields.add
@@ -143,6 +163,13 @@ class ModelMapper(object):
         self._mapper_accessor.model.update(updated_fields)
 
     def destination_to_origin(self, field_name=None):
+        """Update all the values, or some specific value from a field, from
+        destination model to origin one
+
+        :param field_name: field name from ``mapper`` (its value must be a
+                           :class:`Field` object
+        :return: None
+        """
 
         def _des_to_orig(field, orig_accessor, dest_accessor):
             if isinstance(field, ModelMapper):
@@ -173,6 +200,13 @@ class ModelMapper(object):
 
 
     def origin_to_destination(self, field_name=None):
+        """Update all the values, or some specific value from a field, from
+        origin model to destination one
+
+        :param field_name: field name from ``mapper`` (its value must be a
+                           :class:`Field` object
+        :return: None
+        """
 
         def _orig_to_dest(field, orig_accessor, dest_accessor):
             if isinstance(field, ModelMapper):
