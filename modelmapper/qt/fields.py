@@ -106,6 +106,8 @@ class LineDate(QLineEditAccessor):
     def set_value(self, value):
         if value and isinstance(value, compat.basestring):
             super(LineDate, self).set_value(datetime.strptime(value, self.from_format))
+        else:
+            super(LineDate, self).set_value(value)
 
     def get_value(self):
         value = super(LineDate, self).get_value()
