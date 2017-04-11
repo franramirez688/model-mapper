@@ -63,24 +63,24 @@ class TestCompleteModelMapper(ModelMapperFactoryTest):
         self.assertEqual(expected_values, filtered_values)
 
     def test_destination_to_origin_by_field_name_in_simple_field(self):
-        self._destination_model.val_dddd = 360
+        self.destination_model.val_dddd = 360
         self._model_mapper.destination_to_origin(field_name='dddd_link')
-        self.assertEqual(360, self._origin_model['dddd'])
+        self.assertEqual(360, self.origin_model['dddd'])
 
     def test_origin_to_destination_by_field_name_in_simple_field(self):
-        self._origin_model['dddd'] = 240
+        self.origin_model['dddd'] = 240
         self._model_mapper.origin_to_destination(field_name='dddd_link')
-        self.assertEqual(240, self._destination_model.val_dddd)
+        self.assertEqual(240, self.destination_model.val_dddd)
 
     def test_destination_to_origin_by_field_name_in_model_mapper(self):
         self.update_destination_values()
         self._model_mapper.destination_to_origin(field_name='d_link.c_0_link')
         # Check the change only was successful in first case, second case has the original value
-        self.assertEqual("New test val_d.val_c[0].val_a", self._origin_model['d'][0]['c'][0]['a'])
-        self.assertEqual(2, self._origin_model['d'][0]['c'][1]['b'])
+        self.assertEqual("New test val_d.val_c[0].val_a", self.origin_model['d'][0]['c'][0]['a'])
+        self.assertEqual(2, self.origin_model['d'][0]['c'][1]['b'])
 
     def test_origin_to_destination_by_field_name_in_model_mapper(self):
         self._model_mapper.origin_to_destination(field_name='d_link.c_0_link')
         # Check the change only was successful in first case, second case has the original value
-        self.assertEqual(1, self._destination_model.val_d.val_c[0].val_a)
-        self.assertIs(None, self._destination_model.val_d.val_c[1].val_b)
+        self.assertEqual(1, self.destination_model.val_d.val_c[0].val_a)
+        self.assertIs(None, self.destination_model.val_d.val_c[1].val_b)

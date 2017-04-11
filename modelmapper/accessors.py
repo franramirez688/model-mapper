@@ -35,7 +35,7 @@ class ModelAccessor(object):
 
     def __init__(self, model):
         """
-        :param model: dictionary or a simple object
+        :param model: any object
         """
         self._model = model
 

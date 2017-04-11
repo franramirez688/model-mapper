@@ -1,3 +1,7 @@
+"""
+    Module to save compatibility between Python 2.7.x and 3.x
+"""
+
 
 PY2 = str is bytes
 
