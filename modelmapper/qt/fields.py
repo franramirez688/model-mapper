@@ -119,7 +119,12 @@ class CheckBoxList(QWidgetAccessor):
         return [item.text() for _, item in self.widget.checkedItems()]
 
     def set_value(self, value):
-        pass
+        items = (self.widget.itemText(i) for i in range(self.widget.count()))
+        for i in items:
+            index = self.widget.findText(i)
+            flagCheck = Qt.Checked if i in value else Qt.Unchecked
+            self.widget.model().item(index, self.widget.modelColumn()).setCheckState(flagCheck)
+        self.widget.repaint()
 
 
 class SpinBox(QWidgetAccessor):
