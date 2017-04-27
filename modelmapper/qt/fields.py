@@ -117,11 +117,20 @@ class LineDate(QLineEditAccessor):
 class CheckBoxList(QWidgetAccessor):
     __slots__ = ()
 
+    # See http://doc.qt.io/qt-5/qt.html#CheckState-enum
+    QT_UNCHECKED = 0
+    QT_CHECKED = 2
+
     def get_value(self):
         return [item.text() for _, item in self.widget.checkedItems()]
 
     def set_value(self, value):
-        pass
+        items = (self.widget.itemText(i) for i in range(self.widget.count()))
+        for i in items:
+            index = self.widget.findText(i)
+            flagCheck = self.QT_CHECKED if i in value else self.QT_UNCHECKED
+            self.widget.model().item(index, self.widget.modelColumn()).setCheckState(flagCheck)
+        self.widget.repaint()
 
 
 class SpinBox(QWidgetAccessor):
