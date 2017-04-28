@@ -7,6 +7,10 @@ class ModelMapperError(Exception):
     pass
 
 
+class ModelMapperIndexError(ModelMapperError):
+    pass
+
+
 class FieldError(Exception):
     pass
 
