@@ -322,11 +322,15 @@ class UniformListModelMapper(ModelMapper):
     @ModelMapper.origin_model.setter
     def origin_model(self, val):
         self._orig_data = val
-        self._origin_model = val[self._index]
-        self._origin_accessor = ModelAccessor(self._origin_model)
+        try:
+            self._origin_model = val[self._index]
+            self._origin_accessor = ModelAccessor(self._origin_model)
 
-        for _, model_mapper in self._children:
-            model_mapper.origin_model = self._origin_accessor[model_mapper.origin_access]
+            for _, model_mapper in self._children:
+                model_mapper.origin_model = self._origin_accessor[model_mapper.origin_access]
+        except IndexError:
+            # It could be val = []
+            pass
 
     def origin_to_destination(self, field_name=None):
         if not self._orig_data:
@@ -341,7 +345,9 @@ class UniformListModelMapper(ModelMapper):
         try:
             self.orig_data.pop(index)
         except IndexError:
-            raise exc.ModelMapperError("The index {} is out of range".format(index))
+            msg = "Index {} is out of range. Origin data {} has length {}".format(index, self.orig_data,
+                                                                                  len(self.orig_data))
+            raise exc.ModelMapperIndexError(msg)
 
     @property
     def index(self):
@@ -353,7 +359,9 @@ class UniformListModelMapper(ModelMapper):
             self._update_index(index)
             self.origin_to_destination()
         except IndexError:
-            raise exc.ModelMapperError("The index {} is out of range".format(index))
+            msg = "Index {} is out of range. Origin data {} has length {}".format(index, self.orig_data,
+                                                                                  len(self.orig_data))
+            raise exc.ModelMapperIndexError(msg)
 
     def _update_index(self, index):
         if self._index == index:
