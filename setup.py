@@ -13,10 +13,7 @@ def read(fname):
 setup(
     name='modelmapper',
     version=__version__,
-    author='Taric S.A.',
-    author_email='desarrollo.madrid@taric.es',
-    maintainer='Desarrollo Taric',
-    maintainer_email='desarrollo.madrid@taric.es',
+    author='Francisco Ramirez de Anton',
     long_description=read('README.md'),
     description='Gestor de conexiones entre estructuras de datos',
     packages=find_packages(exclude=['tests', 'tests.*'])
